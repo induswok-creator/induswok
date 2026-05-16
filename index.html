@@ -1765,7 +1765,6 @@ function loadDashboard() {
     renderWeekly(res);
   });
 }
-
 function payRow(label, val, total, color) {
   const pct = total > 0 ? Math.round((val / total) * 100) : 0;
   return '<div style="margin-bottom:10px">' +
