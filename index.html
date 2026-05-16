@@ -718,37 +718,36 @@ tr:hover td { background: rgba(255,255,255,0.03); }
       <!-- Low Stock Alert -->
       <div id="dashLowStock"></div>
 
-      <!-- Quick Actions -->
-      <div class="card">
-        <div class="card-title">⚡ Quick Actions</div>
-        <div class="grid-3" style="gap:8px">
-          <button class="btn btn-primary btn-sm btn-full"
-                  onclick="showPage('sales')">
-            ➕ Add Sale
-          </button>
-          <button class="btn btn-outline btn-sm btn-full"
-                  onclick="showPage('expenses')">
-            💸 Add Expense
-          </button>
-          <button class="btn btn-outline btn-sm btn-full"
-                  onclick="showPage('inventory')">
-            📦 Stock
-          </button>
-          <button class="btn btn-gold btn-sm btn-full"
-                  onclick="sendDailyReport()">
-            📱 WA Report
-          </button>
-          <button class="btn btn-outline btn-sm btn-full"
-                  onclick="showPage('reconcile')">
-            ⚖️ Cash Check
-          </button>
-          <button class="btn btn-green btn-sm btn-full"
-                  onclick="showPage('predictions')">
-            🤖 AI Predict
-          </button>
-        </div>
-      </div>
-
+      <!-- Quick Actions (updated) -->
+<div class="card">
+  <div class="card-title">⚡ Quick Actions</div>
+  <div class="grid-3" style="gap:8px">
+    <button class="btn btn-primary btn-sm btn-full"
+            onclick="showPage('sales')">
+      ➕ Add Sale
+    </button>
+    <button class="btn btn-outline btn-sm btn-full"
+            onclick="showPage('expenses')">
+      💸 Add Expense
+    </button>
+    <button class="btn btn-outline btn-sm btn-full"
+            onclick="showPage('inventory')">
+      📦 Stock
+    </button>
+    <button class="btn btn-gold btn-sm btn-full"
+            onclick="sendDailyReport()">
+      📧 Email Report
+    </button>
+    <button class="btn btn-outline btn-sm btn-full"
+            onclick="sendWeeklyReport()">
+      📅 Weekly Email
+    </button>
+    <button class="btn btn-green btn-sm btn-full"
+            onclick="showPage('predictions')">
+      🤖 AI Predict
+    </button>
+  </div>
+</div>
       <!-- Weekly Trend -->
       <div class="card">
         <div class="card-title">📈 This Week</div>
@@ -1502,9 +1501,10 @@ tr:hover td { background: rgba(255,255,255,0.03); }
 
 </div><!-- end mainApp -->
 
-<!-- WhatsApp FAB -->
-<button id="whatsappFab" onclick="quickWhatsApp()" title="Send WhatsApp Report">
-  📱
+<!-- Email FAB (was WhatsApp) -->
+<button id="whatsappFab" onclick="quickEmail()" title="Send Daily Email Report"
+        style="background:#7B0000">
+  📧
 </button>
 
 <!-- Toast -->
@@ -2495,19 +2495,34 @@ function saveUser() {
 }
 
 // ============================================================
-// WHATSAPP
+// 📧 EMAIL FUNCTIONS (Replace WhatsApp functions)
 // ============================================================
+
 function sendDailyReport() {
-  showToast("📱 Sending WhatsApp report...");
+  showToast("📧 Sending daily report email...");
   call("senddailyreport").then(function(res) {
-    showToast(res.success ? "✅ Report sent to WhatsApp!" : "❌ WhatsApp not configured");
+    if (res.success) {
+      showToast("✅ Daily report sent to " + OWNER_EMAIL_DISPLAY + "!");
+    } else {
+      showToast("❌ Email failed: " + (res.error || "Check setup"));
+    }
   });
 }
 
-function quickWhatsApp() {
+function sendWeeklyReport() {
+  showToast("📧 Sending weekly summary...");
+  call("sendweeklyreport").then(function(res) {
+    showToast(res.success ? "✅ Weekly report sent!" : "❌ Failed");
+  });
+}
+
+function quickEmail() {
+  // FAB button action - sends daily report
   sendDailyReport();
 }
 
+// ADD this constant near top of your script
+const OWNER_EMAIL_DISPLAY = "induswok@gmail.com";
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
