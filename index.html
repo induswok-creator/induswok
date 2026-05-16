@@ -1712,42 +1712,42 @@ function loadDashboard() {
   call("getsummary").then(function(res) {
     if (!res.success) return;
     const s = res.summary;
-
     document.getElementById("ds-sales").textContent   = "₹" + fmt(s.sales);
-    document.getElementById("ds-orders").textContent  = s.orders;
+    document.getElementById("ds-orders").textContent  = s.orders || 0;
     document.getElementById("ds-profit").textContent  = "₹" + fmt(Math.abs(s.profit));
     document.getElementById("ds-margin").textContent  = s.margin + "%";
 
     const profitEl = document.getElementById("ds-profit");
     profitEl.className = "stat-val " + (s.profit >= 0 ? "green" : "red");
 
-    // Payment split
     document.getElementById("paymentSplit").innerHTML =
       payRow("💵 Cash",  s.cash,  s.sales, "#FFD700") +
       payRow("📱 UPI",   s.upi,   s.sales, "#2196F3") +
       payRow("💳 Card",  s.card,  s.sales, "#00c851");
 
-    // Expense split
     document.getElementById("expSplit").innerHTML =
       payRow("📦 Materials", s.rawMaterials, s.totalExp, "#ff8800") +
       payRow("💼 Other",     s.otherExp,     s.totalExp, "#9c27b0");
   });
 
-  // Targets
+  // 🎯 TARGETS - Always render (even with defaults)
   call("gettargets").then(function(res) {
-    if (!res.success) return;
-    renderDashTargets(res);
+    console.log("Targets response:", res); // Debug
+    // Always call render - it handles missing data
+    renderDashTargets(res || {});
+  }).catch(function(err) {
+    console.log("Targets error:", err);
+    // Render with defaults on error
+    renderDashTargets({});
   });
 
   // Inventory alerts
   call("getinventory").then(function(res) {
     if (!res.success) return;
     const lowItems = res.items.filter(function(i) { return i.status !== "OK"; });
-
     if (lowItems.length > 0) {
       document.getElementById("lowStockBadge").style.display = "inline";
       document.getElementById("lowStockBadge").textContent = lowItems.length;
-
       let html = '<div class="alert alert-warn">⚠️ <strong>Low Stock:</strong> ' +
         lowItems.map(function(i) { return i.item; }).join(", ") +
         ' — <button class="btn btn-outline btn-sm" onclick="showPage(\'inventory\')" ' +
@@ -1778,27 +1778,43 @@ function payRow(label, val, total, color) {
 }
 
 function renderDashTargets(t) {
+  // Safety check - ensure all target objects exist
+  const daily   = t.daily   || { target: 15000,  achieved: 0, progress: 0 };
+  const orders  = t.orders  || { target: 40,     achieved: 0, progress: 0 };
+  const monthly = t.monthly || { target: 400000, achieved: 0, progress: 0 };
+
   let html = "";
 
   function targetRow(label, achieved, target, icon) {
-    const pct = Math.min(100, target > 0 ? Math.round((achieved / target) * 100) : 0);
+    achieved = parseFloat(achieved) || 0;
+    target   = parseFloat(target)   || 1; // Avoid divide by zero
+    const pct = Math.min(100, Math.round((achieved / target) * 100));
     const cls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
     const color = pct >= 100 ? "var(--green)" : pct >= 70 ? "var(--orange)" : "#ff4444";
-    return '<div style="margin-bottom:12px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
-      '<span style="font-size:13px">' + icon + " " + label + '</span>' +
+
+    return '<div style="margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+      '<span style="font-size:13px;font-weight:600">' + icon + " " + label + '</span>' +
       '<span style="font-size:12px;color:' + color + ';font-weight:700">' +
-      '₹' + fmt(achieved) + ' / ₹' + fmt(target) + ' (' + pct + '%)</span>' +
+      fmt(achieved) + ' / ' + fmt(target) + ' (' + pct + '%)' +
+      '</span>' +
       '</div>' +
-      '<div class="progress-wrap"><div class="progress-bar ' + cls + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="progress-wrap" style="height:10px">' +
+      '<div class="progress-bar ' + cls + '" style="width:' + pct + '%;min-width:' + (pct>0?"4px":"0") + '"></div>' +
+      '</div>' +
       '</div>';
   }
 
-  html += targetRow("Daily Sales",    t.daily.achieved,   t.daily.target,   "💰");
-  html += targetRow("Daily Orders",   t.orders.achieved,  t.orders.target,  "📋");
-  html += targetRow("Monthly Sales",  t.monthly.achieved, t.monthly.target, "📅");
+  html += targetRow("Daily Sales",    daily.achieved,   daily.target,   "💰");
+  html += targetRow("Daily Orders",   orders.achieved,  orders.target,  "📋");
+  html += targetRow("Monthly Sales",  monthly.achieved, monthly.target, "📅");
 
-  document.getElementById("targetBars").innerHTML = html;
+  const container = document.getElementById("targetBars");
+  if (container) {
+    container.innerHTML = html;
+  } else {
+    console.log("targetBars container not found");
+  }
 }
 
 function renderWeekly(data) {
