@@ -1515,24 +1515,22 @@ tr:hover td { background: rgba(255,255,255,0.03); }
      ============================================================ -->
 <script>
 // ============================================================
-// CONFIGURATION
+// 🐉 INDUS WOK - COMPLETE WORKING JAVASCRIPT
 // ============================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuGY-NQ_BMU4UcNy1VefXAHOSDTzeFag3RnzOPEMHFeSMXl3mLkUrv3-p5arhA-XNG/exec"; // ← REPLACE THIS
 
-// ============================================================
-// APP STATE
-// ============================================================
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuGY-NQ_BMU4UcNy1VefXAHOSDTzeFag3RnzOPEMHFeSMXl3mLkUrv3-p5arhA-XNG/exec"; // ← REPLACE WITH YOUR URL!
+
 let currentUser = null;
 let currentPage = "dashboard";
 
 // ============================================================
-// INIT
+// 🚀 INIT
 // ============================================================
 window.onload = function() {
-  // Safely restore user session
+  // Safely restore session
   try {
     const saved = sessionStorage.getItem("iw_user");
-    if (saved && saved !== "undefined" && saved !== "null") {
+    if (saved && saved !== "undefined" && saved !== "null" && saved.length > 5) {
       const parsed = JSON.parse(saved);
       if (parsed && parsed.name && parsed.role) {
         currentUser = parsed;
@@ -1542,38 +1540,39 @@ window.onload = function() {
       }
     }
   } catch(e) {
-    console.warn("Bad session data, clearing:", e);
+    console.warn("Session corrupted, cleared:", e);
     sessionStorage.removeItem("iw_user");
     currentUser = null;
   }
 
   // Set default dates
   const today = new Date().toISOString().split("T")[0];
-  const dateFields = ["saleDate","expDate","mrDate","dsDate"];
-  dateFields.forEach(function(id) {
-    const el = document.getElementById(id);
-    if (el) el.value = today;
-  });
-};
-  // Set default dates
-  const today = new Date().toISOString().split("T")[0];
-  const dateFields = [
-    "saleDate","expDate","mrDate","dsDate"
-  ];
-  dateFields.forEach(function(id) {
+  ["saleDate","expDate","mrDate","dsDate"].forEach(function(id) {
     const el = document.getElementById(id);
     if (el) el.value = today;
   });
 };
 
 // ============================================================
-// LOGIN / LOGOUT
+// 🔐 LOGIN GUARD
+// ============================================================
+function checkLogin() {
+  if (!currentUser || !currentUser.name) {
+    showToast("⚠️ Session expired - please login again");
+    setTimeout(doLogout, 1500);
+    return false;
+  }
+  return true;
+}
+
+// ============================================================
+// 🔐 LOGIN / LOGOUT
 // ============================================================
 function doLogin() {
   const email = document.getElementById("loginEmail").value.trim();
-  const pin   = document.getElementById("loginPin").value.trim();
+  const pin = document.getElementById("loginPin").value.trim();
   const errEl = document.getElementById("loginError");
-  const btn   = document.querySelector(".login-btn");
+  const btn = document.querySelector(".login-btn");
 
   if (!email || !pin) {
     showLoginError("Please enter username and PIN");
@@ -1586,18 +1585,18 @@ function doLogin() {
 
   call("login", { email: email, pin: pin })
     .then(function(res) {
-      if (res.success) {
+      if (res && res.success && res.user) {
         currentUser = res.user;
         sessionStorage.setItem("iw_user", JSON.stringify(currentUser));
         showApp();
       } else {
-        showLoginError(res.error || "Invalid credentials. Try again.");
+        showLoginError((res && res.error) || "Invalid credentials");
         btn.innerHTML = "🔐 LOGIN";
         btn.disabled = false;
       }
     })
-    .catch(function() {
-      showLoginError("Connection error. Check network.");
+    .catch(function(err) {
+      showLoginError("Connection error: " + err.message);
       btn.innerHTML = "🔐 LOGIN";
       btn.disabled = false;
     });
@@ -1617,102 +1616,53 @@ function doLogout() {
   document.getElementById("loginEmail").value = "";
   document.getElementById("loginPin").value = "";
   document.getElementById("loginError").style.display = "none";
-  document.querySelector(".login-btn").innerHTML = "🔐 LOGIN";
-  document.querySelector(".login-btn").disabled = false;
+  const btn = document.querySelector(".login-btn");
+  if (btn) {
+    btn.innerHTML = "🔐 LOGIN";
+    btn.disabled = false;
+  }
 }
 
 function showApp() {
   document.getElementById("loginScreen").style.display = "none";
   document.getElementById("mainApp").style.display = "block";
-  document.getElementById("whatsappFab").style.display = "block";
+  const fab = document.getElementById("whatsappFab");
+  if (fab) fab.style.display = "block";
 
-  // Update header
   document.getElementById("headerUser").textContent = currentUser.name;
   const roleEl = document.getElementById("headerRole");
   roleEl.textContent = currentUser.role;
   roleEl.className = "role-badge role-" + currentUser.role;
 
-  // Apply role-based visibility
   applyRoleAccess();
-
-  // Load initial data
   loadDashboard();
 }
 
 function applyRoleAccess() {
-  const isOwner   = currentUser.role === "Owner";
-  const isMgr     = currentUser.role === "Manager" || isOwner;
+  const isOwner = currentUser.role === "Owner";
+  const isMgr = currentUser.role === "Manager" || isOwner;
 
-  // Show owner-only elements
   document.querySelectorAll(".owner-only").forEach(function(el) {
     el.style.display = isOwner ? "block" : "none";
   });
-  // Show manager-only elements
   document.querySelectorAll(".manager-only").forEach(function(el) {
     el.style.display = isMgr ? "block" : "none";
   });
-  // Show/hide nav buttons
   document.querySelectorAll(".nav-btn.owner-only").forEach(function(el) {
     el.style.display = isOwner ? "flex" : "none";
   });
 }
 
 // ============================================================
-// NAVIGATION
-// ============================================================
-function showPage(page) {
-  // Hide all pages
-  document.querySelectorAll(".page").forEach(function(p) {
-    p.classList.remove("active");
-  });
-  // Deactivate nav buttons
-  document.querySelectorAll(".nav-btn").forEach(function(b) {
-    b.classList.remove("active");
-  });
-
-  // Show target page
-  document.getElementById("page-" + page).classList.add("active");
-  currentPage = page;
-
-  // Activate nav button
-  document.querySelectorAll(".nav-btn").forEach(function(b) {
-    if (b.getAttribute("onclick") && b.getAttribute("onclick").includes("'" + page + "'")) {
-      b.classList.add("active");
-    }
-  });
-
-  // Load page data
-  switch(page) {
-    case "dashboard":   loadDashboard();    break;
-    case "sales":       loadSales();        break;
-    case "expenses":    loadExpenses();     break;
-    case "inventory":   loadInventory();    break;
-    case "vendors":     loadVendors();      break;
-    case "targets":     loadTargets();      break;
-    case "dishes":      loadBestSellers(); loadDishProfits(); break;
-    case "money":       loadMoneyReceived(); break;
-    case "predictions": loadPredictions();  break;
-    case "audit":       loadAuditLog();     break;
-    case "users":       loadUsers();        break;
-  }
-
-  // Scroll to top
-  window.scrollTo(0, 0);
-}
-
-// ============================================================
-// API CALL HELPER
+// 📡 API CALL
 // ============================================================
 function call(action, data) {
-  // Fallback if currentUser is missing
-  const safeUser = currentUser && currentUser.name ? currentUser : { 
-    name: "Guest", 
-    role: "Staff",
-    email: "guest@local"
+  const safeUser = (currentUser && currentUser.name) ? currentUser : { 
+    name: "Guest", role: "Staff", email: "guest@local" 
   };
   
   const payload = Object.assign({ action: action, user: safeUser }, data || {});
-  console.log("📤 Sending:", action);
+  console.log("📤 " + action, payload);
   
   return fetch(SCRIPT_URL, {
     method: "POST",
@@ -1721,171 +1671,177 @@ function call(action, data) {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
   })
-  .then(function(response) {
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    return response.text();
+  .then(function(r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.text();
   })
   .then(function(text) {
     try {
       return JSON.parse(text);
     } catch(e) {
-      console.error("❌ JSON parse error. Raw response:", text);
-      return { success: false, error: "Invalid response from server" };
+      console.error("Bad JSON:", text);
+      return { success: false, error: "Bad server response" };
     }
   })
   .catch(function(err) {
-    console.error("❌ Fetch error:", err);
+    console.error("Fetch error:", err);
     return { success: false, error: err.message };
   });
 }
+
 // ============================================================
-// TOAST
+// 🧭 NAVIGATION
+// ============================================================
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.querySelectorAll(".nav-btn").forEach(function(b) { b.classList.remove("active"); });
+  
+  const target = document.getElementById("page-" + page);
+  if (target) target.classList.add("active");
+  currentPage = page;
+
+  document.querySelectorAll(".nav-btn").forEach(function(b) {
+    const oc = b.getAttribute("onclick");
+    if (oc && oc.includes("'" + page + "'")) b.classList.add("active");
+  });
+
+  switch(page) {
+    case "dashboard":   loadDashboard(); break;
+    case "sales":       loadSales(); break;
+    case "expenses":    loadExpenses(); break;
+    case "inventory":   loadInventory(); break;
+    case "vendors":     loadVendors(); break;
+    case "targets":     loadTargets(); break;
+    case "dishes":      loadBestSellers(); loadDishProfits(); break;
+    case "money":       loadMoneyReceived(); break;
+    case "predictions": loadPredictions(); break;
+    case "audit":       loadAuditLog(); break;
+    case "users":       loadUsers(); break;
+  }
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// 🍞 TOAST
 // ============================================================
 function showToast(msg, duration) {
   const t = document.getElementById("toast");
+  if (!t) return;
   t.textContent = msg;
   t.classList.add("show");
   setTimeout(function() { t.classList.remove("show"); }, duration || 3000);
 }
 
 // ============================================================
-// DASHBOARD
+// 📊 DASHBOARD
 // ============================================================
 function loadDashboard() {
   updateGreeting();
 
-  // Load summary
   call("getsummary").then(function(res) {
-    if (!res.success) return;
-    const s = res.summary;
-    document.getElementById("ds-sales").textContent   = "₹" + fmt(s.sales);
-    document.getElementById("ds-orders").textContent  = s.orders || 0;
-    document.getElementById("ds-profit").textContent  = "₹" + fmt(Math.abs(s.profit));
-    document.getElementById("ds-margin").textContent  = s.margin + "%";
-
+    if (!res || !res.success) return;
+    const s = res.summary || res;
+    document.getElementById("ds-sales").textContent = "₹" + fmt(s.sales);
+    document.getElementById("ds-orders").textContent = s.orders || 0;
+    document.getElementById("ds-profit").textContent = "₹" + fmt(Math.abs(s.profit || 0));
+    document.getElementById("ds-margin").textContent = (s.margin || 0) + "%";
+    
     const profitEl = document.getElementById("ds-profit");
-    profitEl.className = "stat-val " + (s.profit >= 0 ? "green" : "red");
+    profitEl.className = "stat-val " + ((s.profit || 0) >= 0 ? "green" : "red");
 
     document.getElementById("paymentSplit").innerHTML =
-      payRow("💵 Cash",  s.cash,  s.sales, "#FFD700") +
-      payRow("📱 UPI",   s.upi,   s.sales, "#2196F3") +
-      payRow("💳 Card",  s.card,  s.sales, "#00c851");
+      payRow("💵 Cash", s.cash || 0, s.sales || 0, "#FFD700") +
+      payRow("📱 UPI", s.upi || 0, s.sales || 0, "#2196F3") +
+      payRow("💳 Card", s.card || 0, s.sales || 0, "#00c851");
 
     document.getElementById("expSplit").innerHTML =
-      payRow("📦 Materials", s.rawMaterials, s.totalExp, "#ff8800") +
-      payRow("💼 Other",     s.otherExp,     s.totalExp, "#9c27b0");
+      payRow("📦 Materials", s.rawMaterials || 0, s.totalExp || 0, "#ff8800") +
+      payRow("💼 Other", s.otherExp || 0, s.totalExp || 0, "#9c27b0");
   });
 
-  // 🎯 TARGETS - Always render (even with defaults)
   call("gettargets").then(function(res) {
-    console.log("Targets response:", res); // Debug
-    // Always call render - it handles missing data
     renderDashTargets(res || {});
-  }).catch(function(err) {
-    console.log("Targets error:", err);
-    // Render with defaults on error
-    renderDashTargets({});
   });
 
-  // Inventory alerts
   call("getinventory").then(function(res) {
-    if (!res.success) return;
-    const lowItems = res.items.filter(function(i) { return i.status !== "OK"; });
+    if (!res || !res.success) return;
+    const lowItems = (res.items || []).filter(function(i) { return i.status !== "OK"; });
+    const badge = document.getElementById("lowStockBadge");
     if (lowItems.length > 0) {
-      document.getElementById("lowStockBadge").style.display = "inline";
-      document.getElementById("lowStockBadge").textContent = lowItems.length;
-      let html = '<div class="alert alert-warn">⚠️ <strong>Low Stock:</strong> ' +
-        lowItems.map(function(i) { return i.item; }).join(", ") +
-        ' — <button class="btn btn-outline btn-sm" onclick="showPage(\'inventory\')" ' +
-        'style="padding:4px 10px;margin-left:8px">View</button></div>';
-      document.getElementById("dashLowStock").innerHTML = html;
+      if (badge) { badge.style.display = "inline"; badge.textContent = lowItems.length; }
+      document.getElementById("dashLowStock").innerHTML = 
+        '<div class="alert alert-warn">⚠️ <strong>Low Stock:</strong> ' +
+        lowItems.map(function(i) { return i.item; }).join(", ") + '</div>';
     } else {
-      document.getElementById("lowStockBadge").style.display = "none";
+      if (badge) badge.style.display = "none";
       document.getElementById("dashLowStock").innerHTML = "";
     }
   });
 
-  // Weekly stats
   call("getweekly").then(function(res) {
-    if (!res.success) return;
-    renderWeekly(res);
+    if (res && res.success) renderWeekly(res);
   });
 }
+
 function payRow(label, val, total, color) {
+  val = parseFloat(val) || 0;
+  total = parseFloat(total) || 0;
   const pct = total > 0 ? Math.round((val / total) * 100) : 0;
   return '<div style="margin-bottom:10px">' +
     '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
     '<span>' + label + '</span>' +
     '<span style="color:' + color + ';font-weight:700">₹' + fmt(val) + ' (' + pct + '%)</span>' +
-    '</div>' +
-    '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + color + '"></div></div>' +
-    '</div>';
+    '</div><div class="progress-wrap">' +
+    '<div class="progress-bar" style="width:' + pct + '%;background:' + color + '"></div>' +
+    '</div></div>';
 }
 
 function renderDashTargets(t) {
-  // Safety check - ensure all target objects exist
-  const daily   = t.daily   || { target: 15000,  achieved: 0, progress: 0 };
-  const orders  = t.orders  || { target: 40,     achieved: 0, progress: 0 };
+  const daily = t.daily || { target: 15000, achieved: 0, progress: 0 };
+  const orders = t.orders || { target: 40, achieved: 0, progress: 0 };
   const monthly = t.monthly || { target: 400000, achieved: 0, progress: 0 };
 
-  let html = "";
-
-  function targetRow(label, achieved, target, icon) {
-    achieved = parseFloat(achieved) || 0;
-    target   = parseFloat(target)   || 1; // Avoid divide by zero
-    const pct = Math.min(100, Math.round((achieved / target) * 100));
+  function row(label, ach, tgt, icon) {
+    ach = parseFloat(ach) || 0;
+    tgt = parseFloat(tgt) || 1;
+    const pct = Math.min(100, Math.round((ach / tgt) * 100));
     const cls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
     const color = pct >= 100 ? "var(--green)" : pct >= 70 ? "var(--orange)" : "#ff4444";
-
     return '<div style="margin-bottom:14px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+      '<div style="display:flex;justify-content:space-between;margin-bottom:6px">' +
       '<span style="font-size:13px;font-weight:600">' + icon + " " + label + '</span>' +
       '<span style="font-size:12px;color:' + color + ';font-weight:700">' +
-      fmt(achieved) + ' / ' + fmt(target) + ' (' + pct + '%)' +
-      '</span>' +
-      '</div>' +
-      '<div class="progress-wrap" style="height:10px">' +
-      '<div class="progress-bar ' + cls + '" style="width:' + pct + '%;min-width:' + (pct>0?"4px":"0") + '"></div>' +
-      '</div>' +
-      '</div>';
+      fmt(ach) + ' / ' + fmt(tgt) + ' (' + pct + '%)</span></div>' +
+      '<div class="progress-wrap"><div class="progress-bar ' + cls + 
+      '" style="width:' + pct + '%"></div></div></div>';
   }
 
-  html += targetRow("Daily Sales",    daily.achieved,   daily.target,   "💰");
-  html += targetRow("Daily Orders",   orders.achieved,  orders.target,  "📋");
-  html += targetRow("Monthly Sales",  monthly.achieved, monthly.target, "📅");
-
-  const container = document.getElementById("targetBars");
-  if (container) {
-    container.innerHTML = html;
-  } else {
-    console.log("targetBars container not found");
-  }
+  const html = row("Daily Sales", daily.achieved, daily.target, "💰") +
+               row("Daily Orders", orders.achieved, orders.target, "📋") +
+               row("Monthly Sales", monthly.achieved, monthly.target, "📅");
+  
+  const el = document.getElementById("targetBars");
+  if (el) el.innerHTML = html;
 }
 
 function renderWeekly(data) {
   const days = data.days || [];
   if (days.length === 0) {
-    document.getElementById("weeklyStats").innerHTML =
-      '<div class="empty">No weekly data yet</div>';
+    document.getElementById("weeklyStats").innerHTML = '<div class="empty">No data</div>';
     return;
   }
-
   const maxSales = Math.max.apply(null, days.map(function(d) { return d.sales || 0; })) || 1;
-
-  let html = '<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 4px">';
+  let html = '<div style="display:flex;align-items:flex-end;gap:6px;height:80px">';
   days.forEach(function(d) {
     const pct = Math.round(((d.sales || 0) / maxSales) * 100);
-    const isToday = d.isToday;
     html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
       '<div style="font-size:9px;color:var(--text-muted)">₹' + shortNum(d.sales || 0) + '</div>' +
       '<div style="width:100%;height:' + pct + '%;min-height:4px;border-radius:4px 4px 0 0;' +
-      'background:' + (isToday ? "var(--gold)" : "var(--red)") + ';transition:height 0.5s"></div>' +
-      '<div style="font-size:10px;color:' + (isToday ? "var(--gold)" : "var(--text-muted)") +
-      ';font-weight:' + (isToday ? "700" : "400") + '">' + d.day + '</div>' +
-      '</div>';
+      'background:' + (d.isToday ? "var(--gold)" : "var(--red)") + '"></div>' +
+      '<div style="font-size:10px;color:' + (d.isToday ? "var(--gold)" : "var(--text-muted)") + 
+      ';font-weight:' + (d.isToday ? "700" : "400") + '">' + d.day + '</div></div>';
   });
   html += '</div>';
-
   document.getElementById("weeklyStats").innerHTML = html;
 }
 
@@ -1893,71 +1849,56 @@ function updateGreeting() {
   const hour = new Date().getHours();
   let greeting = hour < 12 ? "Good Morning! 🌅" : hour < 17 ? "Good Afternoon! ☀️" : "Good Evening! 🌙";
   if (currentUser) greeting = greeting.replace("Good", "Good " + currentUser.name.split(" ")[0] + ",");
-
   document.getElementById("dashGreeting").textContent = greeting;
-  document.getElementById("dashDate").textContent =
-    new Date().toLocaleDateString("en-IN", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
-
-  const motivations = [
-    "Every order counts! 🍜",
-    "Consistency is the key! 💪",
-    "Great food = Happy customers! 🐉",
-    "Push for the daily target! 🎯",
-    "Mira Road's best restaurant! ⭐"
-  ];
-  document.getElementById("dashMotivation").textContent =
-    motivations[new Date().getDay() % motivations.length];
+  document.getElementById("dashDate").textContent = 
+    new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const motivations = ["Every order counts! 🍜", "Consistency is key! 💪", "Great food = Happy customers! 🐉"];
+  document.getElementById("dashMotivation").textContent = motivations[new Date().getDay() % motivations.length];
 }
 
 // ============================================================
-// SALES
+// 💰 SALES
 // ============================================================
 function saveSale() {
   if (!checkLogin()) return;
   
   const d = {
-    date:   document.getElementById("saleDate").value,
-    total:  document.getElementById("saleTotalAmt").value,
-    cash:   document.getElementById("saleCash").value || 0,
-    upi:    document.getElementById("saleUPI").value || 0,
-    card:   document.getElementById("saleCard").value || 0,
+    date: document.getElementById("saleDate").value,
+    total: document.getElementById("saleTotalAmt").value,
+    cash: document.getElementById("saleCash").value || 0,
+    upi: document.getElementById("saleUPI").value || 0,
+    card: document.getElementById("saleCard").value || 0,
     orders: document.getElementById("saleOrders").value || 0,
-    notes:  document.getElementById("saleNotes").value,
-    user:   currentUser.name,
-    role:   currentUser.role
+    notes: document.getElementById("saleNotes").value,
+    user: currentUser.name,
+    role: currentUser.role
   };
 
-  if (!d.date || !d.total) {
-    showToast("❌ Please fill date and total sales");
-    return;
-  }
+  if (!d.date || !d.total) { showToast("❌ Fill date and total"); return; }
 
   call("addsale", d).then(function(res) {
     if (res && res.success) {
       showToast("✅ Sale saved! ₹" + fmt(d.total));
       loadSales();
       loadDashboard();
-      // Clear form
-      document.getElementById("saleTotalAmt").value = "";
-      document.getElementById("saleCash").value = "";
-      document.getElementById("saleUPI").value = "";
-      document.getElementById("saleCard").value = "";
-      document.getElementById("saleOrders").value = "";
-      document.getElementById("saleNotes").value = "";
+      ["saleTotalAmt","saleCash","saleUPI","saleCard","saleOrders","saleNotes"].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
     } else {
-      showToast("❌ " + ((res && res.error) || "Error saving"));
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
+
 function loadSales() {
   call("getsales").then(function(res) {
-    if (!res.success) return;
     const tbody = document.getElementById("salesTableBody");
-    if (!res.sales || res.sales.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty">No sales data yet</td></tr>';
+    if (!tbody) return;
+    if (!res || !res.success || !res.sales || res.sales.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No sales data</td></tr>';
       return;
     }
-
     tbody.innerHTML = res.sales.slice(-20).reverse().map(function(s) {
       return '<tr>' +
         '<td>' + formatDate(s.date) + '</td>' +
@@ -1972,25 +1913,22 @@ function loadSales() {
 }
 
 // ============================================================
-// EXPENSES
+// 💸 EXPENSES
 // ============================================================
 function saveExpense() {
   if (!checkLogin()) return;
   
   const d = {
-    date:   document.getElementById("expDate").value,
-    cat:    document.getElementById("expCat").value,
+    date: document.getElementById("expDate").value,
+    cat: document.getElementById("expCat").value,
     vendor: document.getElementById("expVendor").value,
     amount: document.getElementById("expAmt").value,
-    desc:   document.getElementById("expDesc").value,
-    user:   currentUser.name,
-    role:   currentUser.role
+    desc: document.getElementById("expDesc").value,
+    user: currentUser.name,
+    role: currentUser.role
   };
 
-  if (!d.date || !d.amount) {
-    showToast("❌ Please fill date and amount");
-    return;
-  }
+  if (!d.date || !d.amount) { showToast("❌ Fill date and amount"); return; }
 
   call("addexpense", d).then(function(res) {
     if (res && res.success) {
@@ -2007,62 +1945,51 @@ function saveExpense() {
 
 function loadExpenses() {
   call("getexpenses").then(function(res) {
-    if (!res.success) return;
     const container = document.getElementById("expensesList");
-    if (!res.expenses || res.expenses.length === 0) {
-      container.innerHTML = '<div class="empty"><div class="empty-icon">💸</div>No expenses today</div>';
+    if (!container) return;
+    if (!res || !res.success || !res.expenses || res.expenses.length === 0) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">💸</div>No expenses</div>';
       return;
     }
-
     let total = 0;
-    let html = '<div class="table-wrap"><table>' +
-      '<thead><tr><th>Category</th><th>Vendor</th><th>Amount</th><th>Notes</th></tr></thead><tbody>';
-
+    let html = '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Category</th><th>Vendor</th><th>Amount</th><th>Notes</th></tr></thead><tbody>';
     res.expenses.slice(-20).reverse().forEach(function(e) {
       total += e.amount || 0;
-      html += '<tr>' +
-        '<td><span class="status status-warn">' + e.cat + '</span></td>' +
+      html += '<tr><td><span class="status status-warn">' + e.cat + '</span></td>' +
         '<td>' + (e.vendor || "-") + '</td>' +
         '<td style="color:#ff8800;font-weight:700">₹' + fmt(e.amount) + '</td>' +
-        '<td style="color:var(--text-muted);font-size:12px">' + (e.desc || "-") + '</td>' +
-        '</tr>';
+        '<td style="color:var(--text-muted);font-size:12px">' + (e.desc || "-") + '</td></tr>';
     });
-
-    html += '</tbody></table></div>';
-    html += '<div style="text-align:right;margin-top:10px">' +
+    html += '</tbody></table></div><div style="text-align:right;margin-top:10px">' +
       '<strong>Total: </strong><span style="color:var(--orange);font-weight:800">₹' + fmt(total) + '</span></div>';
-
     container.innerHTML = html;
   });
 }
 
 // ============================================================
-// INVENTORY
+// 📦 INVENTORY
 // ============================================================
 function loadInventory() {
   call("getinventory").then(function(res) {
-    if (!res.success) return;
+    if (!res || !res.success) return;
     let ok = 0, low = 0, crit = 0;
-
     const tbody = document.getElementById("inventoryTable");
-    tbody.innerHTML = res.items.map(function(item) {
-      if (item.status === "OK")       ok++;
+    if (!tbody) return;
+    
+    tbody.innerHTML = (res.items || []).map(function(item) {
+      if (item.status === "OK") ok++;
       else if (item.status === "LOW") low++;
-      else                            crit++;
-
+      else crit++;
       const cls = item.status === "OK" ? "status-ok" : item.status === "LOW" ? "status-low" : "status-critical";
-      return '<tr>' +
-        '<td style="font-weight:600">' + item.item + '</td>' +
-        '<td style="font-weight:700;color:' + (item.status==="OK"?"var(--green)":item.status==="LOW"?"var(--orange)":"#ff4444") +
-        '">' + item.current + '</td>' +
-        '<td style="color:var(--text-muted)">' + item.unit + '</td>' +
-        '<td style="color:var(--text-muted)">' + item.min + '</td>' +
-        '<td><span class="status ' + cls + '">' + item.status + '</span></td>' +
-        '</tr>';
+      return '<tr><td style="font-weight:600">' + item.item + '</td>' +
+        '<td style="font-weight:700;color:' + (item.status === "OK" ? "var(--green)" : item.status === "LOW" ? "var(--orange)" : "#ff4444") + '">' + item.current + '</td>' +
+        '<td>' + item.unit + '</td><td>' + item.min + '</td>' +
+        '<td><span class="status ' + cls + '">' + item.status + '</span></td></tr>';
     }).join("");
-
-    document.getElementById("inv-ok").textContent   = ok;
-    document.getElementById("inv-low").textContent  = low;
+    
+    document.getElementById("inv-ok").textContent = ok;
+    document.getElementById("inv-low").textContent = low;
     document.getElementById("inv-crit").textContent = crit;
   });
 }
@@ -2071,128 +1998,100 @@ function saveInventory() {
   if (!checkLogin()) return;
   
   const d = {
-    item:      document.getElementById("invItem").value.trim(),
-    quantity:  document.getElementById("invQty").value,
-    unit:      document.getElementById("invUnit").value,
+    item: document.getElementById("invItem").value.trim(),
+    quantity: document.getElementById("invQty").value,
+    unit: document.getElementById("invUnit").value,
     operation: document.getElementById("invOp").value,
-    user:      currentUser.name,
-    role:      currentUser.role
+    user: currentUser.name,
+    role: currentUser.role
   };
-
-  if (!d.item || !d.quantity) {
-    showToast("❌ Fill item name and quantity");
-    return;
-  }
+  if (!d.item || !d.quantity) { showToast("❌ Fill item and qty"); return; }
 
   call("updateinventory", d).then(function(res) {
     if (res && res.success) {
       showToast("✅ " + res.message);
       loadInventory();
       document.getElementById("invItem").value = "";
-      document.getElementById("invQty").value  = "";
+      document.getElementById("invQty").value = "";
     } else {
       showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
+
 function addWastage() {
-    if (!checkLogin()) return;
+  if (!checkLogin()) return;
   const item = document.getElementById("invItem").value.trim();
-  const qty  = document.getElementById("invQty").value;
-
-  if (!item || !qty) {
-    showToast("❌ Fill item and quantity first");
-    return;
-  }
-
-  const reason = prompt("Reason for wastage?") || "Spoiled";
-  const cost   = prompt("Cost of wastage (₹)?") || 0;
+  const qty = document.getElementById("invQty").value;
+  if (!item || !qty) { showToast("❌ Fill item and qty first"); return; }
+  const reason = prompt("Reason?") || "Spoiled";
+  const cost = prompt("Cost (₹)?") || 0;
 
   call("addwastage", {
     item: item, quantity: qty,
     unit: document.getElementById("invUnit").value,
-    reason: reason, cost: cost,
-    user: currentUser.name
+    reason: reason, cost: cost, user: currentUser.name
   }).then(function(res) {
-    if (res.success) {
-      showToast("✅ Wastage recorded");
-      loadInventory();
-    } else {
-      showToast("❌ " + res.error);
-    }
+    if (res && res.success) { showToast("✅ Wastage recorded"); loadInventory(); }
+    else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
 
 // ============================================================
-// VENDORS
+// 🏪 VENDORS
 // ============================================================
 function loadVendors() {
   call("getvendors").then(function(res) {
-    if (!res.success) return;
     const tbody = document.getElementById("vendorTable");
-
-    if (!res.vendors || res.vendors.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No vendors yet</td></tr>';
+    if (!tbody) return;
+    if (!res || !res.success || !res.vendors || res.vendors.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No vendors</td></tr>';
       return;
     }
-
     tbody.innerHTML = res.vendors.map(function(v) {
-      const outstanding = parseFloat(v.outstanding) || 0;
-      return '<tr>' +
-        '<td style="font-weight:700">' + v.name + '</td>' +
+      const out = parseFloat(v.outstanding) || 0;
+      return '<tr><td style="font-weight:700">' + v.name + '</td>' +
         '<td><span class="status status-warn">' + v.category + '</span></td>' +
         '<td>' + (v.phone || "-") + '</td>' +
-        '<td style="color:' + (outstanding > 0 ? "#ff4444" : "var(--green)") + ';font-weight:700">' +
-        (outstanding > 0 ? "₹" + fmt(outstanding) + " due" : "Clear ✅") + '</td>' +
-        '<td>' +
-        '<button class="btn btn-sm btn-outline" onclick="quickPayVendor(\'' + v.name + '\')">' +
-        '💳 Pay</button>' +
-        '</td>' +
-        '</tr>';
+        '<td style="color:' + (out > 0 ? "#ff4444" : "var(--green)") + ';font-weight:700">' +
+        (out > 0 ? "₹" + fmt(out) + " due" : "Clear ✅") + '</td>' +
+        '<td><button class="btn btn-sm btn-outline" onclick="quickPayVendor(\'' + v.name + '\')">💳 Pay</button></td></tr>';
     }).join("");
   });
 }
 
 function saveVendor() {
   if (!checkLogin()) return;
-  
   const d = {
-    name:     document.getElementById("vName").value.trim(),
+    name: document.getElementById("vName").value.trim(),
     category: document.getElementById("vCat").value,
-    phone:    document.getElementById("vPhone").value,
-    notes:    document.getElementById("vNotes").value
+    phone: document.getElementById("vPhone").value,
+    notes: document.getElementById("vNotes").value
   };
-  if (!d.name) { showToast("❌ Enter vendor name"); return; }
-
+  if (!d.name) { showToast("❌ Enter name"); return; }
   call("addvendor", d).then(function(res) {
     if (res && res.success) {
       showToast("✅ Vendor added!");
       loadVendors();
       document.getElementById("vName").value = "";
       document.getElementById("vPhone").value = "";
-    } else {
-      showToast("❌ " + ((res && res.error) || "Error"));
-    }
+    } else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
 
 function payVendor() {
-    if (!checkLogin()) return;
-  const name   = document.getElementById("vpName").value.trim();
+  if (!checkLogin()) return;
+  const name = document.getElementById("vpName").value.trim();
   const amount = document.getElementById("vpAmount").value;
-  if (!name || !amount) { showToast("❌ Fill vendor name and amount"); return; }
-
-  call("updatevendorpayment", { name: name, amount: parseFloat(amount) })
-    .then(function(res) {
-      if (res.success) {
-        showToast("✅ Payment recorded");
-        loadVendors();
-        document.getElementById("vpName").value   = "";
-        document.getElementById("vpAmount").value = "";
-      } else {
-        showToast("❌ " + res.error);
-      }
-    });
+  if (!name || !amount) { showToast("❌ Fill all fields"); return; }
+  call("updatevendorpayment", { name: name, amount: parseFloat(amount) }).then(function(res) {
+    if (res && res.success) {
+      showToast("✅ Payment recorded");
+      loadVendors();
+      document.getElementById("vpName").value = "";
+      document.getElementById("vpAmount").value = "";
+    } else showToast("❌ " + ((res && res.error) || "Error"));
+  });
 }
 
 function quickPayVendor(name) {
@@ -2201,302 +2100,249 @@ function quickPayVendor(name) {
 }
 
 // ============================================================
-// TARGETS
+// 🎯 TARGETS
 // ============================================================
 function loadTargets() {
   call("gettargets").then(function(res) {
-    if (!res.success) return;
-    renderTargets(res);
+    renderTargets(res || {});
   });
 }
 
 function renderTargets(t) {
-  function targetCard(label, data, icon, color) {
-    const pct = Math.min(100, data.target > 0 ? Math.round((data.achieved / data.target) * 100) : 0);
-    const statusCls = pct >= 100 ? "status-good" : pct >= 70 ? "status-warn" : "status-danger";
-    const statusTxt = pct >= 100 ? "✅ Achieved!" : pct >= 70 ? "⚠️ Almost" : "🔴 Behind";
-    const progressCls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
-
+  function card(label, data, icon, color) {
+    data = data || { target: 0, achieved: 0 };
+    const ach = parseFloat(data.achieved) || 0;
+    const tgt = parseFloat(data.target) || 1;
+    const pct = Math.min(100, Math.round((ach / tgt) * 100));
+    const sCls = pct >= 100 ? "status-good" : pct >= 70 ? "status-warn" : "status-danger";
+    const sTxt = pct >= 100 ? "✅ Achieved!" : pct >= 70 ? "⚠️ Almost" : "🔴 Behind";
+    const pCls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
     return '<div class="card" style="border-color:' + color + '">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
       '<div style="font-size:15px;font-weight:700">' + icon + " " + label + '</div>' +
-      '<span class="status ' + statusCls + '">' + statusTxt + '</span>' +
-      '</div>' +
+      '<span class="status ' + sCls + '">' + sTxt + '</span></div>' +
       '<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px">' +
-      '<span>Achieved: <strong style="color:' + color + '">₹' + fmt(data.achieved) + '</strong></span>' +
-      '<span>Target: <strong>₹' + fmt(data.target) + '</strong></span>' +
-      '</div>' +
+      '<span>Achieved: <strong style="color:' + color + '">₹' + fmt(ach) + '</strong></span>' +
+      '<span>Target: <strong>₹' + fmt(tgt) + '</strong></span></div>' +
       '<div class="progress-wrap" style="height:14px">' +
-      '<div class="progress-bar ' + progressCls + '" style="width:' + pct + '%"></div>' +
-      '</div>' +
+      '<div class="progress-bar ' + pCls + '" style="width:' + pct + '%"></div></div>' +
       '<div style="text-align:center;margin-top:6px;font-size:13px;font-weight:800;color:' + color + '">' +
-      pct + '% Complete' +
-      '</div></div>';
+      pct + '% Complete</div></div>';
   }
-
-  document.getElementById("targetsDisplay").innerHTML =
-    targetCard("Daily Sales",   t.daily,   "💰", "#FFD700") +
-    targetCard("Daily Orders",  t.orders,  "📋", "#2196F3") +
-    targetCard("Weekly Sales",  t.weekly,  "📅", "#00c851") +
-    targetCard("Monthly Sales", t.monthly, "🗓️", "#ff8800") +
-    targetCard("Monthly Profit",t.profit,  "💎", "#9c27b0");
+  const el = document.getElementById("targetsDisplay");
+  if (el) el.innerHTML = 
+    card("Daily Sales", t.daily, "💰", "#FFD700") +
+    card("Daily Orders", t.orders, "📋", "#2196F3") +
+    card("Weekly Sales", t.weekly, "📅", "#00c851") +
+    card("Monthly Sales", t.monthly, "🗓️", "#ff8800") +
+    card("Monthly Profit", t.profit, "💎", "#9c27b0");
 }
 
 function saveTarget() {
   if (!checkLogin()) return;
-  
   const d = {
     targetType: document.getElementById("targetType").value,
-    amount:     document.getElementById("targetAmt").value
+    amount: document.getElementById("targetAmt").value
   };
-  if (!d.amount) { showToast("❌ Enter target amount"); return; }
-
+  if (!d.amount) { showToast("❌ Enter amount"); return; }
   call("updatetarget", d).then(function(res) {
     if (res && res.success) {
       showToast("✅ Target updated!");
       loadTargets();
-      loadDashboard();
       document.getElementById("targetAmt").value = "";
-    } else {
-      showToast("❌ " + ((res && res.error) || "Error"));
-    }
+    } else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
+
 // ============================================================
-// DISHES
+// 🍽️ DISHES
 // ============================================================
 function showDishTab(tab) {
   ["bestsellers","profit","adddish"].forEach(function(t) {
-    document.getElementById("dishTab-" + t).style.display = t === tab ? "block" : "none";
+    const el = document.getElementById("dishTab-" + t);
+    if (el) el.style.display = t === tab ? "block" : "none";
   });
 }
 
 function loadBestSellers() {
   call("getbestsellers").then(function(res) {
-    if (!res.success) return;
     const tbody = document.getElementById("bestSellerTable");
-    if (!res.dishes || res.dishes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No dish sales logged yet</td></tr>';
+    if (!tbody) return;
+    if (!res || !res.success || !res.dishes || res.dishes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No dish sales logged</td></tr>';
       return;
     }
     const medals = ["🥇","🥈","🥉"];
     tbody.innerHTML = res.dishes.map(function(d, i) {
-      return '<tr>' +
-        '<td>' + (medals[i] || "#" + (i+1)) + '</td>' +
+      return '<tr><td>' + (medals[i] || "#" + (i+1)) + '</td>' +
         '<td style="font-weight:600">' + d.dish + '</td>' +
         '<td style="color:var(--blue);font-weight:700">' + d.qty + '</td>' +
-        '<td style="color:var(--gold);font-weight:700">₹' + fmt(d.revenue) + '</td>' +
-        '</tr>';
+        '<td style="color:var(--gold);font-weight:700">₹' + fmt(d.revenue) + '</td></tr>';
     }).join("");
   });
 }
 
 function loadDishProfits() {
   call("getdishprofits").then(function(res) {
-    if (!res.success) return;
     const tbody = document.getElementById("dishProfitTable");
-    if (!res.dishes || res.dishes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No dish costs set yet</td></tr>';
+    if (!tbody) return;
+    if (!res || !res.success || !res.dishes || res.dishes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No dish costs set</td></tr>';
       return;
     }
     tbody.innerHTML = res.dishes.map(function(d) {
       const margin = parseFloat(d.margin) || 0;
       const color = margin >= 50 ? "var(--green)" : margin >= 30 ? "var(--orange)" : "#ff4444";
-      return '<tr>' +
-        '<td style="font-weight:600">' + d.dish + '</td>' +
-        '<td>₹' + d.sellPrice + '</td>' +
-        '<td>₹' + d.costPrice + '</td>' +
+      return '<tr><td style="font-weight:600">' + d.dish + '</td>' +
+        '<td>₹' + d.sellPrice + '</td><td>₹' + d.costPrice + '</td>' +
         '<td style="color:var(--green);font-weight:700">₹' + d.profit + '</td>' +
-        '<td style="color:' + color + ';font-weight:700">' + d.margin + '</td>' +
-        '</tr>';
+        '<td style="color:' + color + ';font-weight:700">' + d.margin + '</td></tr>';
     }).join("");
   });
 }
 
 function saveDishCost() {
-   if (!checkLogin()) return;
+  if (!checkLogin()) return;
   const d = {
-    dish:         document.getElementById("dishName").value.trim(),
+    dish: document.getElementById("dishName").value.trim(),
     sellingPrice: document.getElementById("dishSell").value,
-    costPrice:    document.getElementById("dishCost").value
+    costPrice: document.getElementById("dishCost").value
   };
-  if (!d.dish || !d.sellingPrice || !d.costPrice) {
-    showToast("❌ Fill all fields"); return;
-  }
+  if (!d.dish || !d.sellingPrice || !d.costPrice) { showToast("❌ Fill all fields"); return; }
   call("setdishcost", d).then(function(res) {
-    if (res.success) {
-      showToast("✅ " + res.message);
-      loadDishProfits();
-    } else {
-      showToast("❌ " + res.error);
-    }
+    if (res && res.success) { showToast("✅ " + res.message); loadDishProfits(); }
+    else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
 
 function saveDishSale() {
-   if (!checkLogin()) return;
+  if (!checkLogin()) return;
   const d = {
-    dish:     document.getElementById("dsDish").value.trim(),
+    dish: document.getElementById("dsDish").value.trim(),
     category: document.getElementById("dsCat").value,
     quantity: document.getElementById("dsQty").value,
-    price:    document.getElementById("dsPrice").value,
-    date:     document.getElementById("dsDate").value
+    price: document.getElementById("dsPrice").value,
+    date: document.getElementById("dsDate").value
   };
-  if (!d.dish || !d.quantity) { showToast("❌ Fill dish and quantity"); return; }
-
+  if (!d.dish || !d.quantity) { showToast("❌ Fill dish and qty"); return; }
   call("adddishsale", d).then(function(res) {
-    if (res.success) {
-      showToast("✅ Dish sale logged!");
+    if (res && res.success) {
+      showToast("✅ Sale logged!");
       document.getElementById("dsDish").value = "";
-      document.getElementById("dsQty").value  = "";
-    } else {
-      showToast("❌ " + res.error);
-    }
+      document.getElementById("dsQty").value = "";
+    } else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
 
 // ============================================================
-// MONEY RECEIVED
+// 💵 MONEY RECEIVED
 // ============================================================
 function saveMoneyReceived() {
   if (!checkLogin()) return;
-  
   const d = {
-    date:        document.getElementById("mrDate").value,
-    from:        document.getElementById("mrFrom").value.trim(),
-    reason:      document.getElementById("mrReason").value.trim(),
-    amount:      document.getElementById("mrAmount").value,
+    date: document.getElementById("mrDate").value,
+    from: document.getElementById("mrFrom").value.trim(),
+    reason: document.getElementById("mrReason").value.trim(),
+    amount: document.getElementById("mrAmount").value,
     paymentMode: document.getElementById("mrMode").value,
-    user:        currentUser.name,
-    role:        currentUser.role
+    user: currentUser.name,
+    role: currentUser.role
   };
   if (!d.from || !d.amount) { showToast("❌ Fill From and Amount"); return; }
-
   call("addmoneyreceived", d).then(function(res) {
     if (res && res.success) {
       showToast("✅ " + res.message);
       loadMoneyReceived();
-      document.getElementById("mrFrom").value   = "";
+      document.getElementById("mrFrom").value = "";
       document.getElementById("mrReason").value = "";
       document.getElementById("mrAmount").value = "";
-    } else {
-      showToast("❌ " + ((res && res.error) || "Error"));
-    }
+    } else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
+
 function loadMoneyReceived() {
   call("getmoneyreceived").then(function(res) {
-    if (!res.success) return;
-    document.getElementById("moneyTotal").textContent = "₹" + fmt(res.total);
-
+    if (!res || !res.success) return;
+    document.getElementById("moneyTotal").textContent = "₹" + fmt(res.total || 0);
     const tbody = document.getElementById("moneyTable");
+    if (!tbody) return;
     if (!res.entries || res.entries.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No entries yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No entries</td></tr>';
       return;
     }
     tbody.innerHTML = res.entries.slice(-20).reverse().map(function(e) {
-      return '<tr>' +
-        '<td>' + formatDate(e.date) + '</td>' +
+      return '<tr><td>' + formatDate(e.date) + '</td>' +
         '<td style="font-weight:600">' + e.from + '</td>' +
-        '<td style="color:var(--text-muted)">' + (e.reason || "-") + '</td>' +
+        '<td>' + (e.reason || "-") + '</td>' +
         '<td style="color:var(--green);font-weight:700">₹' + fmt(e.amount) + '</td>' +
-        '<td>' + (e.mode || "-") + '</td>' +
-        '</tr>';
+        '<td>' + (e.mode || "-") + '</td></tr>';
     }).join("");
   });
 }
 
 // ============================================================
-// CASH RECONCILIATION
+// ⚖️ CASH RECONCILIATION
 // ============================================================
 function doReconcile() {
   if (!checkLogin()) return;
-  
   const d = {
     opening: document.getElementById("rcOpening").value,
-    actual:  document.getElementById("rcActual").value,
-    user:    currentUser.name
+    actual: document.getElementById("rcActual").value,
+    user: currentUser.name
   };
   if (!d.opening || !d.actual) { showToast("❌ Fill all fields"); return; }
-
   call("reconcilecash", d).then(function(res) {
-    if (!res || !res.success) { 
-      showToast("❌ " + ((res && res.error) || "Error")); 
-      return; 
-    }
-
+    if (!res || !res.success) { showToast("❌ " + ((res && res.error) || "Error")); return; }
     const isGood = Math.abs(res.difference) < 100;
-    const color  = isGood ? "var(--green)" : "#ff4444";
-
+    const color = isGood ? "var(--green)" : "#ff4444";
     document.getElementById("reconcileResult").style.display = "block";
-    document.getElementById("reconcileResultBody").innerHTML =
+    document.getElementById("reconcileResultBody").innerHTML = 
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-      '<div class="stat-card"><div class="stat-label">Expected Cash</div>' +
+      '<div class="stat-card"><div class="stat-label">Expected</div>' +
       '<div class="stat-val">₹' + fmt(res.expected) + '</div></div>' +
-      '<div class="stat-card"><div class="stat-label">Actual Cash</div>' +
+      '<div class="stat-card"><div class="stat-label">Actual</div>' +
       '<div class="stat-val">₹' + fmt(res.actual) + '</div></div></div>' +
-      '<div style="text-align:center;margin-top:16px;padding:16px;background:var(--surface2);' +
-      'border-radius:10px;border:2px solid ' + color + '">' +
-      '<div style="font-size:24px;margin-bottom:6px">' + (isGood ? "✅" : "⚠️") + '</div>' +
+      '<div style="text-align:center;margin-top:16px;padding:16px;background:var(--surface2);border-radius:10px;border:2px solid ' + color + '">' +
+      '<div style="font-size:24px">' + (isGood ? "✅" : "⚠️") + '</div>' +
       '<div style="font-size:18px;font-weight:800;color:' + color + '">' + res.status + '</div>' +
-      '<div style="font-size:14px;margin-top:6px">Difference: <strong style="color:' + 
-      color + '">₹' + res.difference + '</strong></div></div>';
-
-    showToast(isGood ? "✅ Cash balanced!" : "⚠️ Cash mismatch!");
+      '<div style="font-size:14px;margin-top:6px">Difference: <strong style="color:' + color + '">₹' + res.difference + '</strong></div></div>';
+    showToast(isGood ? "✅ Cash balanced!" : "⚠️ Mismatch!");
     document.getElementById("rcOpening").value = "";
-    document.getElementById("rcActual").value  = "";
+    document.getElementById("rcActual").value = "";
   });
 }
 
 // ============================================================
-// AI PREDICTIONS
+// 🤖 AI PREDICTIONS
 // ============================================================
 function loadPredictions() {
-  document.getElementById("dayInsights").innerHTML = "Analyzing data...";
-  document.getElementById("aiTipsList").innerHTML  = "Generating insights...";
-
   call("getpredictions").then(function(res) {
-    if (!res.success) {
-      document.getElementById("dayInsights").innerHTML =
-        '<div class="alert alert-warn">Need more data for predictions</div>';
+    if (!res || !res.success) {
+      document.getElementById("dayInsights").innerHTML = '<div class="alert alert-warn">Need more data</div>';
       return;
     }
-
-    const p = res.predictions;
-    document.getElementById("pred-tomorrow").textContent     = "₹" + fmt(p.tomorrow);
+    const p = res.predictions || {};
+    document.getElementById("pred-tomorrow").textContent = "₹" + fmt(p.tomorrow);
     document.getElementById("pred-tomorrow-day").textContent = p.tomorrowDay + " Prediction";
-    document.getElementById("pred-week").textContent         = "₹" + fmt(p.weekAhead);
-    document.getElementById("pred-avg").textContent          = "₹" + fmt(res.averageDaily);
-    document.getElementById("pred-month").textContent        = "₹" + fmt(p.monthEnd);
-
-    // Day insights
+    document.getElementById("pred-week").textContent = "₹" + fmt(p.weekAhead);
+    document.getElementById("pred-avg").textContent = "₹" + fmt(res.averageDaily);
+    document.getElementById("pred-month").textContent = "₹" + fmt(p.monthEnd);
+    
     let dayHtml = "";
     if (res.dayInsights && res.dayInsights.length > 0) {
       const maxAvg = res.dayInsights[0].avg || 1;
       dayHtml = res.dayInsights.map(function(d) {
         const pct = Math.round((d.avg / maxAvg) * 100);
-        return '<div style="margin-bottom:10px">' +
-          '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
-          '<span>' + d.day + '</span>' +
-          '<span style="color:var(--gold);font-weight:700">₹' + fmt(d.avg) + ' avg</span>' +
-          '</div>' +
-          '<div class="progress-wrap"><div class="progress-bar progress-green" style="width:' + pct + '%"></div></div>' +
-          '</div>';
+        return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
+          '<span>' + d.day + '</span><span style="color:var(--gold);font-weight:700">₹' + fmt(d.avg) + ' avg</span></div>' +
+          '<div class="progress-wrap"><div class="progress-bar progress-green" style="width:' + pct + '%"></div></div></div>';
       }).join("");
-    } else {
-      dayHtml = '<div class="empty">Need 7+ days of data</div>';
     }
-    document.getElementById("dayInsights").innerHTML = dayHtml;
-
-    // AI Tips
+    document.getElementById("dayInsights").innerHTML = dayHtml || '<div class="empty">Need 7+ days</div>';
+    
     const tips = [];
-    if (res.bestDay) tips.push("📈 Your best day is <strong>" + res.bestDay.day + "</strong> (avg ₹" + fmt(res.bestDay.avg) + "). Staff up!");
-    if (res.worstDay) tips.push("📉 <strong>" + res.worstDay.day + "</strong> is slowest. Consider offers or discounts.");
-    if (p.tomorrow > res.averageDaily * 1.1) tips.push("🚀 Tomorrow looks strong! Prepare extra stock.");
-    else if (p.tomorrow < res.averageDaily * 0.9) tips.push("⚠️ Slower day ahead. Plan accordingly.");
-    tips.push("💡 Average order value: ₹" + fmt(Math.round(res.averageDaily / 40)));
-    tips.push("🎯 To hit monthly target, need ₹" + fmt(Math.round(res.predictions.monthEnd / 30)) + "/day");
-
+    if (res.bestDay) tips.push("📈 Best day: <strong>" + res.bestDay.day + "</strong> (₹" + fmt(res.bestDay.avg) + ")");
+    if (res.worstDay) tips.push("📉 Slowest: <strong>" + res.worstDay.day + "</strong>");
     document.getElementById("aiTipsList").innerHTML = tips.map(function(t) {
       return '<div class="alert alert-info" style="margin-bottom:8px">' + t + '</div>';
     }).join("");
@@ -2504,110 +2350,87 @@ function loadPredictions() {
 }
 
 // ============================================================
-// AUDIT LOG
+// 🔍 AUDIT LOG
 // ============================================================
 function loadAuditLog() {
   call("getauditlog", { limit: 100 }).then(function(res) {
-    if (!res.success) return;
     const tbody = document.getElementById("auditTable");
-
-    if (!res.logs || res.logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No audit records</td></tr>';
+    if (!tbody) return;
+    if (!res || !res.success || !res.logs || res.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No records</td></tr>';
       return;
     }
-
     tbody.innerHTML = res.logs.map(function(l) {
-      return '<tr>' +
-        '<td style="font-size:11px;color:var(--text-muted)">' + formatDateTime(l.time) + '</td>' +
+      return '<tr><td style="font-size:11px;color:var(--text-muted)">' + formatDateTime(l.time) + '</td>' +
         '<td style="font-weight:600">' + l.user + '</td>' +
         '<td><span class="role-badge role-' + l.role + '" style="font-size:10px">' + l.role + '</span></td>' +
         '<td>' + l.action + '</td>' +
-        '<td style="color:var(--text-muted);font-size:12px">' + l.details + '</td>' +
-        '</tr>';
+        '<td style="color:var(--text-muted);font-size:12px">' + l.details + '</td></tr>';
     }).join("");
   });
 }
 
 // ============================================================
-// USERS
+// 👥 USERS
 // ============================================================
 function loadUsers() {
   call("getusers").then(function(res) {
-    if (!res.success) return;
+    if (!res || !res.success) return;
     const container = document.getElementById("usersList");
-
-    container.innerHTML = res.users.map(function(u) {
-      return '<div style="display:flex;align-items:center;justify-content:space-between;' +
-        'padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:8px">' +
-        '<div>' +
-        '<div style="font-weight:700">' + u.name + '</div>' +
-        '<div style="font-size:12px;color:var(--text-muted)">' + u.email + '</div>' +
-        '</div>' +
-        '<div style="text-align:right">' +
-        '<span class="role-badge role-' + u.role + '">' + u.role + '</span>' +
+    if (!container) return;
+    container.innerHTML = (res.users || []).map(function(u) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:8px">' +
+        '<div><div style="font-weight:700">' + u.name + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">' + u.email + '</div></div>' +
+        '<div style="text-align:right"><span class="role-badge role-' + u.role + '">' + u.role + '</span>' +
         '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' +
-        (u.active === "Yes" ? "✅ Active" : "❌ Inactive") + '</div>' +
-        '</div>' +
-        '</div>';
+        (u.active === "Yes" ? "✅ Active" : "❌ Inactive") + '</div></div></div>';
     }).join("");
   });
 }
 
 function saveUser() {
-     if (!checkLogin()) return;
+  if (!checkLogin()) return;
   const d = {
-    name:    document.getElementById("uName").value.trim(),
-    email:   document.getElementById("uEmail").value.trim(),
-    role:    document.getElementById("uRole").value,
-    pin:     document.getElementById("uPin").value,
+    name: document.getElementById("uName").value.trim(),
+    email: document.getElementById("uEmail").value.trim(),
+    role: document.getElementById("uRole").value,
+    pin: document.getElementById("uPin").value,
     addedBy: currentUser.name
   };
   if (!d.name || !d.pin) { showToast("❌ Fill name and PIN"); return; }
-
   call("adduser", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ User added!");
       loadUsers();
-      document.getElementById("uName").value  = "";
+      document.getElementById("uName").value = "";
       document.getElementById("uEmail").value = "";
-      document.getElementById("uPin").value   = "";
-    } else {
-      showToast("❌ " + res.error);
-    }
+      document.getElementById("uPin").value = "";
+    } else showToast("❌ " + ((res && res.error) || "Error"));
   });
 }
 
 // ============================================================
-// 📧 EMAIL FUNCTIONS (Replace WhatsApp functions)
+// 📧 EMAIL
 // ============================================================
-
 function sendDailyReport() {
-  showToast("📧 Sending daily report email...");
+  showToast("📧 Sending report...");
   call("senddailyreport").then(function(res) {
-    if (res.success) {
-      showToast("✅ Daily report sent to " + OWNER_EMAIL_DISPLAY + "!");
-    } else {
-      showToast("❌ Email failed: " + (res.error || "Check setup"));
-    }
+    showToast(res && res.success ? "✅ Email sent!" : "❌ Email failed");
   });
 }
 
 function sendWeeklyReport() {
-  showToast("📧 Sending weekly summary...");
+  showToast("📧 Sending weekly...");
   call("sendweeklyreport").then(function(res) {
-    showToast(res.success ? "✅ Weekly report sent!" : "❌ Failed");
+    showToast(res && res.success ? "✅ Weekly sent!" : "❌ Failed");
   });
 }
 
-function quickEmail() {
-  // FAB button action - sends daily report
-  sendDailyReport();
-}
+function quickEmail() { sendDailyReport(); }
 
-// ADD this constant near top of your script
-const OWNER_EMAIL_DISPLAY = "induswok@gmail.com";
 // ============================================================
-// UTILITY FUNCTIONS
+// 🔧 UTILS
 // ============================================================
 function fmt(num) {
   const n = parseFloat(num) || 0;
@@ -2616,23 +2439,21 @@ function fmt(num) {
 
 function shortNum(num) {
   if (num >= 100000) return (num/100000).toFixed(1) + "L";
-  if (num >= 1000)   return (num/1000).toFixed(1) + "K";
+  if (num >= 1000) return (num/1000).toFixed(1) + "K";
   return num;
 }
 
 function formatDate(d) {
   if (!d) return "-";
-  try {
-    return new Date(d).toLocaleDateString("en-IN", { day:"2-digit", month:"short" });
-  } catch(e) { return "-"; }
+  try { return new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short" }); }
+  catch(e) { return "-"; }
 }
 
 function formatDateTime(d) {
   if (!d) return "-";
   try {
     return new Date(d).toLocaleString("en-IN", {
-      day:"2-digit", month:"short",
-      hour:"2-digit", minute:"2-digit"
+      day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit"
     });
   } catch(e) { return "-"; }
 }
@@ -2643,19 +2464,6 @@ document.addEventListener("keydown", function(e) {
     doLogin();
   }
 });
-   // ============================================================
-// 🔐 LOGIN GUARD - Prevents save crashes
-// ============================================================
-function checkLogin() {
-  if (!currentUser || !currentUser.name) {
-    showToast("⚠️ Session expired - please login again");
-    setTimeout(function() {
-      doLogout();
-    }, 1500);
-    return false;
-  }
-  return true;
-}
 </script>
 </body>
 </html>
