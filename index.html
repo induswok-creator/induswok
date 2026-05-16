@@ -313,8 +313,12 @@ body {
 <div class="modal-overlay" id="salesModal">
   <div class="modal">
     <div class="modal-header">
-      <h2>💰 Add Today's Sales</h2>
+      <h2>💰 Add Sales</h2>
       <button class="close-btn" onclick="closeModal('salesModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>📅 Date</label>
+      <input type="date" id="salesDate" value="">
     </div>
     <div class="form-group">
       <label>💵 Total Sales (₹)</label>
@@ -351,13 +355,17 @@ body {
     <button class="submit-btn" onclick="submitSales()">💾 Save Sales</button>
   </div>
 </div>
-
+  
 <!-- STOCK MODAL -->
 <div class="modal-overlay" id="stockModal">
   <div class="modal">
     <div class="modal-header">
       <h2>📦 Add Stock Order</h2>
       <button class="close-btn" onclick="closeModal('stockModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>📅 Date</label>
+      <input type="date" id="stockDate" value="">
     </div>
     <div class="form-group">
       <label>🏷️ Item Name</label>
@@ -393,13 +401,17 @@ body {
     <button class="submit-btn" onclick="submitStock()">💾 Save Stock</button>
   </div>
 </div>
-
+  
 <!-- EXPENSE MODAL -->
 <div class="modal-overlay" id="expenseModal">
   <div class="modal">
     <div class="modal-header">
       <h2>💸 Add Expense</h2>
       <button class="close-btn" onclick="closeModal('expenseModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label>📅 Date</label>
+      <input type="date" id="expDate" value="">
     </div>
     <div class="form-group">
       <label>📁 Category</label>
@@ -689,8 +701,10 @@ async function loadChart() {
 }
 
 // SUBMIT SALES
+// Update submitSales function
 async function submitSales() {
   const data = {
+    date: document.getElementById('salesDate').value,
     total: document.getElementById('salesTotal').value,
     cash: document.getElementById('salesCash').value,
     upi: document.getElementById('salesUPI').value,
@@ -702,16 +716,19 @@ async function submitSales() {
   if (!data.total) return showToast("Enter total sales!", true);
   const result = await apiCall('addsales', data);
   if (result.success) {
-    showToast("✅ Sales saved: ₹" + data.total);
+    showToast("✅ " + result.message);
     closeModal('salesModal');
     loadDashboard();
-    document.querySelectorAll('#salesModal input, #salesModal textarea').forEach(i => i.value = i.id === 'salesNotes' ? '' : '0');
+    document.querySelectorAll('#salesModal input[type=number], #salesModal textarea').forEach(i => i.value = i.id === 'salesNotes' ? '' : '0');
+    document.getElementById('salesTotal').value = '';
+    setDefaultDates();
   }
 }
 
-// SUBMIT STOCK
+// Update submitStock function
 async function submitStock() {
   const data = {
+    date: document.getElementById('stockDate').value,
     item: document.getElementById('stockItem').value,
     quantity: document.getElementById('stockQty').value,
     unit: document.getElementById('stockUnit').value,
@@ -722,15 +739,17 @@ async function submitStock() {
   if (!data.item || !data.quantity || !data.rate) return showToast("Fill required fields!", true);
   const result = await apiCall('addstock', data);
   if (result.success) {
-    showToast("✅ Stock added: ₹" + result.cost);
+    showToast("✅ " + result.message);
     closeModal('stockModal');
     document.querySelectorAll('#stockModal input').forEach(i => i.value = '');
+    setDefaultDates();
   }
 }
 
-// SUBMIT EXPENSE
+// Update submitExpense function
 async function submitExpense() {
   const data = {
+    date: document.getElementById('expDate').value,
     category: document.getElementById('expCategory').value,
     description: document.getElementById('expDesc').value,
     amount: document.getElementById('expAmount').value,
@@ -739,115 +758,25 @@ async function submitExpense() {
   if (!data.amount) return showToast("Enter amount!", true);
   const result = await apiCall('addexpense', data);
   if (result.success) {
-    showToast("✅ Expense saved: ₹" + data.amount);
+    showToast("✅ " + result.message);
     closeModal('expenseModal');
     loadDashboard();
     document.getElementById('expDesc').value = '';
     document.getElementById('expAmount').value = '';
+    setDefaultDates();
   }
 }
 
-// PHOTO PREVIEW & UPLOAD
-function previewPhoto(event) {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = document.getElementById('billPreview');
-      img.src = e.target.result;
-      img.classList.add('show');
-      billPhotoData = e.target.result.split(',')[1]; // Base64
-    };
-    reader.readAsDataURL(file);
-  }
+// NEW: Set default dates to today
+function setDefaultDates() {
+  const today = new Date().toISOString().split('T')[0];
+  if (document.getElementById('salesDate')) document.getElementById('salesDate').value = today;
+  if (document.getElementById('stockDate')) document.getElementById('stockDate').value = today;
+  if (document.getElementById('expDate')) document.getElementById('expDate').value = today;
 }
 
-async function submitBill() {
-  if (!billPhotoData) return showToast("Take a photo first!", true);
-  const data = {
-    imageData: billPhotoData,
-    mimeType: 'image/jpeg',
-    category: document.getElementById('billCategory').value,
-    description: document.getElementById('billDesc').value,
-    amount: document.getElementById('billAmount').value || 0
-  };
-  const result = await apiCall('uploadbill', data);
-  if (result.success) {
-    showToast("✅ Bill uploaded!");
-    closeModal('billModal');
-    document.getElementById('billPreview').classList.remove('show');
-    billPhotoData = null;
-    loadDashboard();
-  }
-}
-
-// STAFF
-async function loadStaffStatus() {
-  const result = await apiCall('getstaffstatus');
-  if (result.success) {
-    document.getElementById('staffStatus').innerHTML = `
-      <div class="staff-card">
-        <div class="staff-info">
-          <div class="staff-avatar">👨‍🍳</div>
-          <div>
-            <div class="staff-name">Jannat (Chef)</div>
-            <div class="staff-status">
-              <span class="status-dot ${result.jannat.checkedIn ? 'green' : 'red'}"></span>
-              ${result.jannat.checkedIn ? 'In: ' + result.jannat.time + ' - ' + result.jannat.status : 'Not checked in'}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="staff-card">
-        <div class="staff-info">
-          <div class="staff-avatar">👤</div>
-          <div>
-            <div class="staff-name">Nafiz (Helper)</div>
-            <div class="staff-status">
-              <span class="status-dot ${result.nafiz.checkedIn ? 'green' : 'red'}"></span>
-              ${result.nafiz.checkedIn ? 'In: ' + result.nafiz.time + ' - ' + result.nafiz.status : 'Not checked in'}
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-}
-
-async function staffAction(action, name) {
-  const result = await apiCall(action, { name: name });
-  if (result.success) {
-    showToast("✅ " + result.message);
-    loadStaffStatus();
-  } else {
-    showToast(result.message, true);
-  }
-}
-
-function openAdvance() {
-  const name = prompt("Staff name? (Jannat/Nafiz)");
-  if (!name) return;
-  const amount = prompt("Advance amount?");
-  if (!amount) return;
-  apiCall('advance', { name: name, amount: amount }).then(r => {
-    if (r.success) showToast("✅ " + r.message);
-  });
-}
-
-async function openSalary() {
-  const result = await apiCall('getsalary');
-  if (result.success) {
-    alert(`💰 SALARIES - ${result.month}\n\n` +
-      `👨‍🍳 JANNAT (Chef)\n` +
-      `Days: ${result.jannat.days} | Hours: ${result.jannat.hours}\n` +
-      `Salary: ₹${result.jannat.salary} | Advance: ₹${result.jannat.advance}\n` +
-      `Net: ₹${result.jannat.net}\n\n` +
-      `👤 NAFIZ (Helper)\n` +
-      `Days: ${result.nafiz.days} | Hours: ${result.nafiz.hours}\n` +
-      `Salary: ₹${result.nafiz.salary} | Advance: ₹${result.nafiz.advance}\n` +
-      `Net: ₹${result.nafiz.net}`);
-  }
-}
+// Call this on page load
+setDefaultDates();
 
 // AI ASSISTANT
 async function askAI(question) {
@@ -979,6 +908,7 @@ if ('Notification' in window && Notification.permission !== 'granted') {
 setInterval(loadDashboard, 5 * 60 * 1000);
 
 // INITIAL LOAD
+setDefaultDates();
 loadDashboard();
 </script>
 
