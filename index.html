@@ -1529,13 +1529,32 @@ let currentPage = "dashboard";
 // INIT
 // ============================================================
 window.onload = function() {
-  // Check if already logged in (session)
-  const saved = sessionStorage.getItem("iw_user");
-  if (saved) {
-    currentUser = JSON.parse(saved);
-    showApp();
+  // Safely restore user session
+  try {
+    const saved = sessionStorage.getItem("iw_user");
+    if (saved && saved !== "undefined" && saved !== "null") {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.name && parsed.role) {
+        currentUser = parsed;
+        showApp();
+      } else {
+        sessionStorage.removeItem("iw_user");
+      }
+    }
+  } catch(e) {
+    console.warn("Bad session data, clearing:", e);
+    sessionStorage.removeItem("iw_user");
+    currentUser = null;
   }
 
+  // Set default dates
+  const today = new Date().toISOString().split("T")[0];
+  const dateFields = ["saleDate","expDate","mrDate","dsDate"];
+  dateFields.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+};
   // Set default dates
   const today = new Date().toISOString().split("T")[0];
   const dateFields = [
@@ -1685,13 +1704,40 @@ function showPage(page) {
 // API CALL HELPER
 // ============================================================
 function call(action, data) {
-  const payload = Object.assign({ action: action, user: currentUser }, data || {});
+  // Fallback if currentUser is missing
+  const safeUser = currentUser && currentUser.name ? currentUser : { 
+    name: "Guest", 
+    role: "Staff",
+    email: "guest@local"
+  };
+  
+  const payload = Object.assign({ action: action, user: safeUser }, data || {});
+  console.log("📤 Sending:", action);
+  
   return fetch(SCRIPT_URL, {
     method: "POST",
+    mode: "cors",
+    redirect: "follow",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(payload)
-  }).then(function(r) { return r.json(); });
+  })
+  .then(function(response) {
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return response.text();
+  })
+  .then(function(text) {
+    try {
+      return JSON.parse(text);
+    } catch(e) {
+      console.error("❌ JSON parse error. Raw response:", text);
+      return { success: false, error: "Invalid response from server" };
+    }
+  })
+  .catch(function(err) {
+    console.error("❌ Fetch error:", err);
+    return { success: false, error: err.message };
+  });
 }
-
 // ============================================================
 // TOAST
 // ============================================================
@@ -1867,6 +1913,8 @@ function updateGreeting() {
 // SALES
 // ============================================================
 function saveSale() {
+  if (!checkLogin()) return;
+  
   const d = {
     date:   document.getElementById("saleDate").value,
     total:  document.getElementById("saleTotalAmt").value,
@@ -1885,16 +1933,22 @@ function saveSale() {
   }
 
   call("addsale", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ Sale saved! ₹" + fmt(d.total));
       loadSales();
       loadDashboard();
+      // Clear form
+      document.getElementById("saleTotalAmt").value = "";
+      document.getElementById("saleCash").value = "";
+      document.getElementById("saleUPI").value = "";
+      document.getElementById("saleCard").value = "";
+      document.getElementById("saleOrders").value = "";
+      document.getElementById("saleNotes").value = "";
     } else {
-      showToast("❌ " + (res.error || "Error saving"));
+      showToast("❌ " + ((res && res.error) || "Error saving"));
     }
   });
 }
-
 function loadSales() {
   call("getsales").then(function(res) {
     if (!res.success) return;
@@ -1921,6 +1975,8 @@ function loadSales() {
 // EXPENSES
 // ============================================================
 function saveExpense() {
+  if (!checkLogin()) return;
+  
   const d = {
     date:   document.getElementById("expDate").value,
     cat:    document.getElementById("expCat").value,
@@ -1937,14 +1993,14 @@ function saveExpense() {
   }
 
   call("addexpense", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ Expense saved! ₹" + fmt(d.amount));
       loadExpenses();
       document.getElementById("expAmt").value = "";
       document.getElementById("expDesc").value = "";
       document.getElementById("expVendor").value = "";
     } else {
-      showToast("❌ " + (res.error || "Error"));
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
@@ -2012,6 +2068,8 @@ function loadInventory() {
 }
 
 function saveInventory() {
+  if (!checkLogin()) return;
+  
   const d = {
     item:      document.getElementById("invItem").value.trim(),
     quantity:  document.getElementById("invQty").value,
@@ -2027,18 +2085,18 @@ function saveInventory() {
   }
 
   call("updateinventory", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ " + res.message);
       loadInventory();
       document.getElementById("invItem").value = "";
       document.getElementById("invQty").value  = "";
     } else {
-      showToast("❌ " + res.error);
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
-
 function addWastage() {
+    if (!checkLogin()) return;
   const item = document.getElementById("invItem").value.trim();
   const qty  = document.getElementById("invQty").value;
 
@@ -2096,6 +2154,8 @@ function loadVendors() {
 }
 
 function saveVendor() {
+  if (!checkLogin()) return;
+  
   const d = {
     name:     document.getElementById("vName").value.trim(),
     category: document.getElementById("vCat").value,
@@ -2105,18 +2165,19 @@ function saveVendor() {
   if (!d.name) { showToast("❌ Enter vendor name"); return; }
 
   call("addvendor", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ Vendor added!");
       loadVendors();
       document.getElementById("vName").value = "";
       document.getElementById("vPhone").value = "";
     } else {
-      showToast("❌ " + res.error);
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
 
 function payVendor() {
+    if (!checkLogin()) return;
   const name   = document.getElementById("vpName").value.trim();
   const amount = document.getElementById("vpAmount").value;
   if (!name || !amount) { showToast("❌ Fill vendor name and amount"); return; }
@@ -2182,6 +2243,8 @@ function renderTargets(t) {
 }
 
 function saveTarget() {
+  if (!checkLogin()) return;
+  
   const d = {
     targetType: document.getElementById("targetType").value,
     amount:     document.getElementById("targetAmt").value
@@ -2189,16 +2252,16 @@ function saveTarget() {
   if (!d.amount) { showToast("❌ Enter target amount"); return; }
 
   call("updatetarget", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ Target updated!");
       loadTargets();
+      loadDashboard();
       document.getElementById("targetAmt").value = "";
     } else {
-      showToast("❌ " + res.error);
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
-
 // ============================================================
 // DISHES
 // ============================================================
@@ -2251,6 +2314,7 @@ function loadDishProfits() {
 }
 
 function saveDishCost() {
+   if (!checkLogin()) return;
   const d = {
     dish:         document.getElementById("dishName").value.trim(),
     sellingPrice: document.getElementById("dishSell").value,
@@ -2270,6 +2334,7 @@ function saveDishCost() {
 }
 
 function saveDishSale() {
+   if (!checkLogin()) return;
   const d = {
     dish:     document.getElementById("dsDish").value.trim(),
     category: document.getElementById("dsCat").value,
@@ -2294,6 +2359,8 @@ function saveDishSale() {
 // MONEY RECEIVED
 // ============================================================
 function saveMoneyReceived() {
+  if (!checkLogin()) return;
+  
   const d = {
     date:        document.getElementById("mrDate").value,
     from:        document.getElementById("mrFrom").value.trim(),
@@ -2306,18 +2373,17 @@ function saveMoneyReceived() {
   if (!d.from || !d.amount) { showToast("❌ Fill From and Amount"); return; }
 
   call("addmoneyreceived", d).then(function(res) {
-    if (res.success) {
+    if (res && res.success) {
       showToast("✅ " + res.message);
       loadMoneyReceived();
       document.getElementById("mrFrom").value   = "";
       document.getElementById("mrReason").value = "";
       document.getElementById("mrAmount").value = "";
     } else {
-      showToast("❌ " + res.error);
+      showToast("❌ " + ((res && res.error) || "Error"));
     }
   });
 }
-
 function loadMoneyReceived() {
   call("getmoneyreceived").then(function(res) {
     if (!res.success) return;
@@ -2344,6 +2410,8 @@ function loadMoneyReceived() {
 // CASH RECONCILIATION
 // ============================================================
 function doReconcile() {
+  if (!checkLogin()) return;
+  
   const d = {
     opening: document.getElementById("rcOpening").value,
     actual:  document.getElementById("rcActual").value,
@@ -2352,7 +2420,10 @@ function doReconcile() {
   if (!d.opening || !d.actual) { showToast("❌ Fill all fields"); return; }
 
   call("reconcilecash", d).then(function(res) {
-    if (!res.success) { showToast("❌ " + res.error); return; }
+    if (!res || !res.success) { 
+      showToast("❌ " + ((res && res.error) || "Error")); 
+      return; 
+    }
 
     const isGood = Math.abs(res.difference) < 100;
     const color  = isGood ? "var(--green)" : "#ff4444";
@@ -2360,20 +2431,16 @@ function doReconcile() {
     document.getElementById("reconcileResult").style.display = "block";
     document.getElementById("reconcileResultBody").innerHTML =
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
-      '<div class="stat-card">' +
-        '<div class="stat-label">Expected Cash</div>' +
-        '<div class="stat-val">₹' + fmt(res.expected) + '</div>' +
-      '</div>' +
-      '<div class="stat-card">' +
-        '<div class="stat-label">Actual Cash</div>' +
-        '<div class="stat-val">₹' + fmt(res.actual) + '</div>' +
-      '</div>' +
-      '</div>' +
-      '<div style="text-align:center;margin-top:16px;padding:16px;background:var(--surface2);border-radius:10px;border:2px solid ' + color + '">' +
+      '<div class="stat-card"><div class="stat-label">Expected Cash</div>' +
+      '<div class="stat-val">₹' + fmt(res.expected) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Actual Cash</div>' +
+      '<div class="stat-val">₹' + fmt(res.actual) + '</div></div></div>' +
+      '<div style="text-align:center;margin-top:16px;padding:16px;background:var(--surface2);' +
+      'border-radius:10px;border:2px solid ' + color + '">' +
       '<div style="font-size:24px;margin-bottom:6px">' + (isGood ? "✅" : "⚠️") + '</div>' +
       '<div style="font-size:18px;font-weight:800;color:' + color + '">' + res.status + '</div>' +
-      '<div style="font-size:14px;margin-top:6px">Difference: <strong style="color:' + color + '">₹' + res.difference + '</strong></div>' +
-      '</div>';
+      '<div style="font-size:14px;margin-top:6px">Difference: <strong style="color:' + 
+      color + '">₹' + res.difference + '</strong></div></div>';
 
     showToast(isGood ? "✅ Cash balanced!" : "⚠️ Cash mismatch!");
     document.getElementById("rcOpening").value = "";
@@ -2487,6 +2554,7 @@ function loadUsers() {
 }
 
 function saveUser() {
+     if (!checkLogin()) return;
   const d = {
     name:    document.getElementById("uName").value.trim(),
     email:   document.getElementById("uEmail").value.trim(),
@@ -2575,6 +2643,19 @@ document.addEventListener("keydown", function(e) {
     doLogin();
   }
 });
+   // ============================================================
+// 🔐 LOGIN GUARD - Prevents save crashes
+// ============================================================
+function checkLogin() {
+  if (!currentUser || !currentUser.name) {
+    showToast("⚠️ Session expired - please login again");
+    setTimeout(function() {
+      doLogout();
+    }, 1500);
+    return false;
+  }
+  return true;
+}
 </script>
 </body>
 </html>
