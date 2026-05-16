@@ -2,915 +2,2549 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#7B0000">
-<title>🐉 Indus Wok Manager</title>
-<link rel="manifest" href='data:application/manifest+json,{"name":"Indus Wok Manager","short_name":"InduWok","start_url":".","display":"standalone","background_color":"#1a0000","theme_color":"#7B0000","icons":[{"src":"data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐉</text></svg>","sizes":"512x512","type":"image/svg+xml"}]}'>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🐉 Indus Wok - Enterprise</title>
 <style>
+/* ============================================================
+   ROOT VARIABLES & RESET
+   ============================================================ */
+:root {
+  --red: #7B0000;
+  --red-light: #a50000;
+  --red-dark: #550000;
+  --gold: #FFD700;
+  --gold-light: #ffe44d;
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface2: #1e1e1e;
+  --surface3: #282828;
+  --border: #333;
+  --text: #f0f0f0;
+  --text-muted: #888;
+  --green: #00c851;
+  --orange: #ff8800;
+  --blue: #2196F3;
+  --purple: #9c27b0;
+  --radius: 12px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { 
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1a0000 0%, #2d0000 50%, #1a0000 100%);
-  color: #f5f5f5; min-height: 100vh; padding-bottom: 80px;
-  user-select: none;
-}
-.container { max-width: 500px; margin: 0 auto; padding: 15px; }
 
-/* HEADER */
-.header {
-  background: linear-gradient(135deg, #7B0000 0%, #500000 100%);
-  padding: 20px; border-radius: 20px; margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(123,0,0,0.5);
-  position: relative; overflow: hidden;
-}
-.header::before {
-  content: ''; position: absolute; top: -50%; right: -50%;
-  width: 200%; height: 200%;
-  background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 50%);
-}
-.header h1 { font-size: 26px; color: #FFD700; margin-bottom: 5px; position: relative; }
-.header p { font-size: 13px; color: #f5f5f5; opacity: 0.9; position: relative; }
-.header .time { font-size: 11px; opacity: 0.7; margin-top: 5px; position: relative; }
-
-/* STATS CARDS */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.stat-card {
-  background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px;
-  border: 1px solid rgba(255,215,0,0.2); backdrop-filter: blur(10px);
-  transition: transform 0.2s;
-}
-.stat-card:active { transform: scale(0.98); }
-.stat-card .label { font-size: 11px; color: #FFD700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-.stat-card .value { font-size: 22px; font-weight: bold; color: #fff; }
-.stat-card .change { font-size: 11px; margin-top: 5px; }
-.stat-card.profit { background: linear-gradient(135deg, rgba(76,175,80,0.2), rgba(76,175,80,0.05)); border-color: #4CAF50; }
-.stat-card.loss { background: linear-gradient(135deg, rgba(244,67,54,0.2), rgba(244,67,54,0.05)); border-color: #f44336; }
-
-/* CHART */
-.chart-card {
-  background: rgba(255,255,255,0.05); padding: 15px; border-radius: 15px;
-  border: 1px solid rgba(255,215,0,0.2); margin-bottom: 20px;
-}
-.chart-card h3 { color: #FFD700; font-size: 14px; margin-bottom: 10px; }
-
-/* ACTION GRID */
-.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.action-btn {
-  background: linear-gradient(135deg, #7B0000, #500000);
-  color: white; padding: 20px 15px; border: none; border-radius: 15px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  transition: all 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,215,0,0.3);
-}
-.action-btn:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-.action-btn .icon { font-size: 28px; }
-.action-btn.full { grid-column: span 2; }
-.action-btn.gold { background: linear-gradient(135deg, #FFD700, #B8860B); color: #1a0000; }
-.action-btn.green { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
-.action-btn.blue { background: linear-gradient(135deg, #2196F3, #1565C0); }
-.action-btn.purple { background: linear-gradient(135deg, #9C27B0, #6A1B9A); }
-.action-btn.orange { background: linear-gradient(135deg, #FF9800, #E65100); }
-
-/* MODAL */
-.modal-overlay {
-  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.85); z-index: 1000; padding: 20px;
-  align-items: flex-end; justify-content: center;
-  backdrop-filter: blur(5px);
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: linear-gradient(135deg, #2d0000, #1a0000);
-  border-radius: 25px 25px 0 0; padding: 25px; width: 100%; max-width: 500px;
-  max-height: 90vh; overflow-y: auto;
-  border: 1px solid rgba(255,215,0,0.3);
-  animation: slideUp 0.3s ease-out;
-}
-@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.modal-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px; padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255,215,0,0.2);
-}
-.modal-header h2 { color: #FFD700; font-size: 20px; }
-.close-btn {
-  background: rgba(244,67,54,0.2); color: #f44336; border: none;
-  width: 35px; height: 35px; border-radius: 50%; font-size: 20px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* FORM */
-.form-group { margin-bottom: 15px; }
-.form-group label {
-  display: block; color: #FFD700; font-size: 12px; margin-bottom: 6px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.form-group input, .form-group select, .form-group textarea {
-  width: 100%; padding: 14px; background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,215,0,0.3); border-radius: 12px;
-  color: white; font-size: 16px; outline: none;
-}
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-  border-color: #FFD700; background: rgba(255,255,255,0.12);
-}
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.submit-btn {
-  width: 100%; padding: 16px; background: linear-gradient(135deg, #FFD700, #B8860B);
-  color: #1a0000; border: none; border-radius: 12px; font-size: 16px; font-weight: bold;
-  cursor: pointer; margin-top: 10px;
-}
-.submit-btn:active { transform: scale(0.98); }
-
-/* AI CHAT */
-.ai-chat {
-  display: flex; flex-direction: column; height: 70vh;
-}
-.ai-messages {
-  flex: 1; overflow-y: auto; padding: 10px; margin-bottom: 10px;
-  background: rgba(0,0,0,0.3); border-radius: 12px;
-}
-.ai-msg { margin-bottom: 12px; padding: 12px; border-radius: 12px; max-width: 85%; }
-.ai-msg.user { background: linear-gradient(135deg, #7B0000, #500000); margin-left: auto; }
-.ai-msg.bot { background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3); }
-.ai-msg .label { font-size: 10px; color: #FFD700; margin-bottom: 4px; }
-.ai-input-row { display: flex; gap: 8px; }
-.ai-input-row input { flex: 1; }
-.ai-input-row button {
-  padding: 14px 20px; background: linear-gradient(135deg, #FFD700, #B8860B);
-  color: #1a0000; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;
-}
-.suggestions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.suggestion {
-  padding: 6px 12px; background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3);
-  border-radius: 20px; font-size: 12px; cursor: pointer; color: #FFD700;
+/* ============================================================
+   LOGIN SCREEN
+   ============================================================ */
+#loginScreen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a0000 50%, #0a0a0a 100%);
+  padding: 20px;
 }
 
-/* TASKS */
-.task-item {
-  background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px;
-  margin-bottom: 8px; border-left: 4px solid #555;
-  display: flex; align-items: center; gap: 10px;
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--red);
+  border-radius: 20px;
+  padding: 40px 30px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 0 60px rgba(123,0,0,0.3);
+  text-align: center;
 }
-.task-item.done { border-left-color: #4CAF50; opacity: 0.6; }
-.task-item.current { border-left-color: #FFD700; background: rgba(255,215,0,0.1); }
-.task-time { color: #FFD700; font-size: 11px; min-width: 60px; }
-.task-text { flex: 1; font-size: 13px; }
-.task-who { font-size: 10px; color: #888; }
 
-/* CONTENT IDEA */
-.content-card {
-  background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
-  border: 1px solid rgba(255,215,0,0.3); padding: 15px; border-radius: 12px;
+.login-logo {
+  font-size: 64px;
+  margin-bottom: 10px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.login-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 30px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
   margin-bottom: 12px;
+  outline: none;
+  transition: border 0.2s;
 }
-.content-card .label { color: #FFD700; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
-.content-card .value { color: white; font-size: 14px; }
 
-/* TOAST */
-.toast {
-  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
-  background: rgba(76,175,80,0.95); color: white; padding: 12px 25px;
-  border-radius: 25px; z-index: 2000; font-size: 14px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: none;
-}
-.toast.show { display: block; animation: slideToast 0.3s; }
-.toast.error { background: rgba(244,67,54,0.95); }
-@keyframes slideToast { from { transform: translate(-50%, 50px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+.login-input:focus { border-color: var(--red); }
 
-/* LOADING */
-.loader {
-  display: none; text-align: center; padding: 20px; color: #FFD700;
+.login-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--red), var(--red-light));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: all 0.2s;
 }
-.loader.show { display: block; }
+
+.login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(123,0,0,0.5); }
+
+.login-error {
+  background: rgba(255,50,50,0.15);
+  border: 1px solid rgba(255,50,50,0.3);
+  color: #ff6b6b;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-top: 10px;
+  display: none;
+}
+
+/* ============================================================
+   MAIN APP - HIDDEN DURING LOGIN
+   ============================================================ */
+#mainApp { display: none; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  background: linear-gradient(135deg, var(--red-dark), var(--red));
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-logo { font-size: 28px; }
+.header-title { font-size: 18px; font-weight: 700; color: var(--gold); }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.7); }
+
+.header-right { display: flex; align-items: center; gap: 8px; }
+.user-badge {
+  background: rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.role-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+.role-Owner { background: var(--gold); color: #000; }
+.role-Manager { background: var(--blue); color: #fff; }
+.role-Staff { background: var(--green); color: #000; }
+
+.logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+.nav-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  position: sticky;
+  top: 58px;
+  z-index: 99;
+}
+
+.nav-bar::-webkit-scrollbar { display: none; }
+
+.nav-inner {
+  display: flex;
+  gap: 2px;
+  padding: 8px;
+  min-width: max-content;
+}
+
+.nav-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--red); color: white; }
+.nav-btn .badge {
+  background: var(--gold);
+  color: #000;
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   MAIN CONTENT
+   ============================================================ */
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* ============================================================
+   CARDS & COMPONENTS
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+/* Stat Cards */
+.stat-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+}
+.stat-icon { font-size: 24px; margin-bottom: 4px; }
+.stat-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gold);
+  line-height: 1.2;
+}
+.stat-val.green { color: var(--green); }
+.stat-val.red { color: #ff4444; }
+.stat-val.blue { color: var(--blue); }
+.stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+/* Form Elements */
+.form-group { margin-bottom: 12px; }
+.form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; display: block; font-weight: 600; }
+.form-input, .form-select {
+  width: 100%;
+  padding: 11px 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border 0.2s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--red); }
+.form-select option { background: var(--surface2); }
+
+/* Buttons */
+.btn {
+  padding: 11px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, var(--red), var(--red-light)); color: white; }
+.btn-gold { background: linear-gradient(135deg, #b8860b, var(--gold)); color: #000; }
+.btn-green { background: linear-gradient(135deg, #007a32, var(--green)); color: white; }
+.btn-blue { background: linear-gradient(135deg, #1565c0, var(--blue)); color: white; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-sm { padding: 7px 14px; font-size: 12px; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  background: var(--surface3);
+  color: var(--text-muted);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.03); }
+
+/* Status Badges */
+.status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-ok { background: rgba(0,200,81,0.15); color: var(--green); }
+.status-low { background: rgba(255,136,0,0.15); color: var(--orange); }
+.status-critical { background: rgba(255,50,50,0.15); color: #ff4444; }
+.status-good { background: rgba(0,200,81,0.15); color: var(--green); }
+.status-warn { background: rgba(255,136,0,0.15); color: var(--orange); }
+.status-danger { background: rgba(255,50,50,0.15); color: #ff4444; }
+
+/* Progress Bar */
+.progress-wrap { background: var(--surface3); border-radius: 10px; height: 10px; overflow: hidden; margin-top: 6px; }
+.progress-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+.progress-green { background: linear-gradient(90deg, #007a32, var(--green)); }
+.progress-orange { background: linear-gradient(90deg, #b86000, var(--orange)); }
+.progress-red { background: linear-gradient(90deg, var(--red-dark), var(--red)); }
+
+/* Alert Box */
+.alert {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.alert-warn { background: rgba(255,136,0,0.12); border: 1px solid rgba(255,136,0,0.3); color: var(--orange); }
+.alert-error { background: rgba(255,50,50,0.12); border: 1px solid rgba(255,50,50,0.3); color: #ff4444; }
+.alert-success { background: rgba(0,200,81,0.12); border: 1px solid rgba(0,200,81,0.3); color: var(--green); }
+.alert-info { background: rgba(33,150,243,0.12); border: 1px solid rgba(33,150,243,0.3); color: var(--blue); }
+
+/* Toast */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  text-align: center;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Loading Spinner */
 .spinner {
-  width: 40px; height: 40px; border: 3px solid rgba(255,215,0,0.2);
-  border-top-color: #FFD700; border-radius: 50%; margin: 0 auto;
-  animation: spin 1s linear infinite;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* BOTTOM NAV */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(26,0,0,0.95); backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255,215,0,0.3); padding: 10px;
-  display: flex; justify-content: space-around; max-width: 500px; margin: 0 auto;
-  z-index: 100;
+/* Section divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
 }
-.nav-btn {
-  background: none; border: none; color: #888; font-size: 11px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  cursor: pointer; padding: 5px 10px; border-radius: 10px;
-}
-.nav-btn.active { color: #FFD700; background: rgba(255,215,0,0.1); }
-.nav-btn .icon { font-size: 22px; }
 
-/* PHOTO */
-.photo-preview {
-  width: 100%; max-height: 200px; object-fit: contain; border-radius: 12px;
-  margin: 10px 0; display: none;
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
 }
-.photo-preview.show { display: block; }
+.empty-icon { font-size: 48px; margin-bottom: 10px; }
 
-/* DASHBOARD STATS */
-.dash-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,215,0,0.1); }
-.dash-row:last-child { border: none; }
-.dash-row .lbl { color: #aaa; font-size: 13px; }
-.dash-row .val { color: #FFD700; font-weight: bold; }
+/* Floating WhatsApp Button */
+#whatsappFab {
+  position: fixed;
+  bottom: 24px;
+  right: 20px;
+  background: #25D366;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  z-index: 500;
+  transition: all 0.2s;
+  display: none;
+}
+#whatsappFab:hover { transform: scale(1.1); }
 
-/* STAFF STATUS */
-.staff-card {
-  background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px;
-  margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+/* ============================================================
+   DASHBOARD PAGE
+   ============================================================ */
+.dashboard-banner {
+  background: linear-gradient(135deg, var(--red-dark), #1a0000);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.staff-info { display: flex; align-items: center; gap: 12px; }
-.staff-avatar {
-  width: 45px; height: 45px; border-radius: 50%;
-  background: linear-gradient(135deg, #7B0000, #500000);
-  display: flex; align-items: center; justify-content: center; font-size: 22px;
+
+.banner-greeting { font-size: 20px; font-weight: 800; }
+.banner-date { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+.banner-icon { font-size: 48px; }
+
+/* Target ring */
+.target-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
-.staff-name { font-size: 14px; color: white; }
-.staff-status { font-size: 11px; color: #888; margin-top: 2px; }
-.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-.status-dot.green { background: #4CAF50; }
-.status-dot.red { background: #f44336; }
-.status-dot.yellow { background: #FFD700; }
+
+.circular-progress {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.circular-progress svg {
+  transform: rotate(-90deg);
+}
+
+.circular-progress .bg-circle {
+  fill: none;
+  stroke: var(--surface3);
+  stroke-width: 6;
+}
+
+.circular-progress .progress-circle {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease;
+}
+
+.circular-progress .center-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold);
+  text-align: center;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 600px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .stat-val { font-size: 17px; }
+  .main { padding: 12px; }
+  .header-title { font-size: 16px; }
+}
+
+@media (max-width: 380px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Owner-only elements */
+.owner-only { display: none; }
+.manager-only { display: none; }
 </style>
 </head>
 <body>
 
-<div class="container" id="mainView">
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🐉</div>
+    <div class="login-title">INDUS WOK</div>
+    <div class="login-sub">Enterprise Management System</div>
+
+    <div style="text-align:left">
+      <div class="form-group">
+        <label class="form-label">Username / Email</label>
+        <input class="login-input" id="loginEmail"
+               type="text" placeholder="Owner / manager@induswok.com"
+               autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">PIN</label>
+        <input class="login-input" id="loginPin"
+               type="password" placeholder="Enter your PIN"
+               maxlength="6" autocomplete="current-password">
+      </div>
+    </div>
+
+    <button class="login-btn" onclick="doLogin()">
+      🔐 LOGIN
+    </button>
+    <div class="login-error" id="loginError"></div>
+
+    <div style="margin-top:20px;font-size:11px;color:var(--text-muted)">
+      🔒 Secure access • All actions logged
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MAIN APP
+     ============================================================ -->
+<div id="mainApp">
+
   <!-- HEADER -->
   <div class="header">
-    <h1>🐉 INDUS WOK</h1>
-    <p>The Flavours of Pan-Asian | Mira Road East</p>
-    <div class="time" id="currentTime"></div>
-  </div>
-
-  <!-- TODAY'S STATS -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="label">💰 Today Sales</div>
-      <div class="value" id="todaySales">₹0</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">📋 Orders</div>
-      <div class="value" id="todayOrders">0</div>
-    </div>
-    <div class="stat-card profit" id="profitCard">
-      <div class="label">📈 Profit</div>
-      <div class="value" id="todayProfit">₹0</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">💸 Expenses</div>
-      <div class="value" id="todayExp">₹0</div>
-    </div>
-  </div>
-
-  <!-- CHART -->
-  <div class="chart-card">
-    <h3>📊 7-Day Performance</h3>
-    <canvas id="weekChart" height="150"></canvas>
-  </div>
-
-  <!-- MAIN ACTIONS -->
-  <div class="action-grid">
-    <button class="action-btn green" onclick="openModal('salesModal')">
-      <span class="icon">💰</span><span>Add Sales</span>
-    </button>
-    <button class="action-btn orange" onclick="openModal('stockModal')">
-      <span class="icon">📦</span><span>Add Stock</span>
-    </button>
-    <button class="action-btn" onclick="openModal('expenseModal')">
-      <span class="icon">💸</span><span>Add Expense</span>
-    </button>
-    <button class="action-btn blue" onclick="openModal('billModal')">
-      <span class="icon">📷</span><span>Scan Bill</span>
-    </button>
-    <button class="action-btn purple" onclick="openModal('staffModal')">
-      <span class="icon">👥</span><span>Staff</span>
-    </button>
-    <button class="action-btn gold" onclick="openModal('aiModal')">
-      <span class="icon">🤖</span><span>AI Assistant</span>
-    </button>
-    <button class="action-btn" onclick="openModal('contentModal')">
-      <span class="icon">💡</span><span>Content Idea</span>
-    </button>
-    <button class="action-btn" onclick="openModal('tasksModal')">
-      <span class="icon">📋</span><span>Today Tasks</span>
-    </button>
-    <button class="action-btn full" onclick="openModal('reportsModal')">
-      <span class="icon">📊</span><span>Full Reports</span>
-    </button>
-  </div>
-</div>
-
-<!-- MODALS -->
-
-<!-- SALES MODAL -->
-<div class="modal-overlay" id="salesModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>💰 Add Sales</h2>
-      <button class="close-btn" onclick="closeModal('salesModal')">×</button>
-    </div>
-    <div class="form-group">
-      <label>📅 Date</label>
-      <input type="date" id="salesDate" value="">
-    </div>
-    <div class="form-group">
-      <label>💵 Total Sales (₹)</label>
-      <input type="number" id="salesTotal" inputmode="numeric" placeholder="22500" autofocus>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>💵 Cash</label>
-        <input type="number" id="salesCash" inputmode="numeric" placeholder="9500" value="0">
-      </div>
-      <div class="form-group">
-        <label>📱 UPI</label>
-        <input type="number" id="salesUPI" inputmode="numeric" placeholder="8500" value="0">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>💳 Card</label>
-        <input type="number" id="salesCard" inputmode="numeric" placeholder="4500" value="0">
-      </div>
-      <div class="form-group">
-        <label>📋 Orders</label>
-        <input type="number" id="salesOrders" inputmode="numeric" placeholder="52" value="0">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>💸 Cash Out (optional)</label>
-      <input type="number" id="salesCashOut" inputmode="numeric" placeholder="0" value="0">
-    </div>
-    <div class="form-group">
-      <label>📝 Notes</label>
-      <textarea id="salesNotes" rows="2" placeholder="Any notes..."></textarea>
-    </div>
-    <button class="submit-btn" onclick="submitSales()">💾 Save Sales</button>
-  </div>
-</div>
-  
-<!-- STOCK MODAL -->
-<div class="modal-overlay" id="stockModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>📦 Add Stock Order</h2>
-      <button class="close-btn" onclick="closeModal('stockModal')">×</button>
-    </div>
-    <div class="form-group">
-      <label>📅 Date</label>
-      <input type="date" id="stockDate" value="">
-    </div>
-    <div class="form-group">
-      <label>🏷️ Item Name</label>
-      <input type="text" id="stockItem" placeholder="Chicken" autofocus>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>📊 Quantity</label>
-        <input type="number" id="stockQty" inputmode="decimal" step="0.1" placeholder="5">
-      </div>
-      <div class="form-group">
-        <label>📏 Unit</label>
-        <select id="stockUnit">
-          <option>kg</option><option>ltr</option><option>pcs</option>
-          <option>packet</option><option>dozen</option><option>box</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-group">
-      <label>💰 Rate per Unit (₹)</label>
-      <input type="number" id="stockRate" inputmode="decimal" placeholder="220">
-    </div>
-    <div class="form-group">
-      <label>🏪 Supplier (optional)</label>
-      <input type="text" id="stockSupplier" placeholder="ABC Suppliers">
-    </div>
-    <div class="form-group">
-      <label>💳 Payment Mode</label>
-      <select id="stockPayment">
-        <option>Cash</option><option>UPI</option><option>Card</option><option>Credit</option>
-      </select>
-    </div>
-    <button class="submit-btn" onclick="submitStock()">💾 Save Stock</button>
-  </div>
-</div>
-  
-<!-- EXPENSE MODAL -->
-<div class="modal-overlay" id="expenseModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>💸 Add Expense</h2>
-      <button class="close-btn" onclick="closeModal('expenseModal')">×</button>
-    </div>
-    <div class="form-group">
-      <label>📅 Date</label>
-      <input type="date" id="expDate" value="">
-    </div>
-    <div class="form-group">
-      <label>📁 Category</label>
-      <select id="expCategory">
-        <option>Gas</option><option>Electricity</option><option>Rent</option>
-        <option>Water</option><option>Cleaning</option><option>Maintenance</option>
-        <option>Marketing</option><option>Internet</option><option>Transport</option>
-        <option>Aggregator</option><option>Misc</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>📝 Description</label>
-      <input type="text" id="expDesc" placeholder="Gas cylinder refill" autofocus>
-    </div>
-    <div class="form-group">
-      <label>💰 Amount (₹)</label>
-      <input type="number" id="expAmount" inputmode="numeric" placeholder="1200">
-    </div>
-    <div class="form-group">
-      <label>💳 Payment Mode</label>
-      <select id="expPayment">
-        <option>Cash</option><option>UPI</option><option>Card</option>
-      </select>
-    </div>
-    <button class="submit-btn" onclick="submitExpense()">💾 Save Expense</button>
-  </div>
-</div>
-
-<!-- BILL PHOTO MODAL -->
-<div class="modal-overlay" id="billModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>📷 Scan Bill</h2>
-      <button class="close-btn" onclick="closeModal('billModal')">×</button>
-    </div>
-    <div class="form-group">
-      <label>📷 Bill Photo</label>
-      <input type="file" id="billPhoto" accept="image/*" capture="environment" onchange="previewPhoto(event)">
-      <img id="billPreview" class="photo-preview">
-    </div>
-    <div class="form-group">
-      <label>📁 Category</label>
-      <select id="billCategory">
-        <option>Stock</option><option>Gas</option><option>Electricity</option>
-        <option>Rent</option><option>Maintenance</option><option>Misc</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>📝 Description</label>
-      <input type="text" id="billDesc" placeholder="Bill description">
-    </div>
-    <div class="form-group">
-      <label>💰 Amount (₹)</label>
-      <input type="number" id="billAmount" inputmode="numeric" placeholder="From bill">
-    </div>
-    <button class="submit-btn" onclick="submitBill()">📤 Upload Bill</button>
-  </div>
-</div>
-
-<!-- STAFF MODAL -->
-<div class="modal-overlay" id="staffModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>👥 Staff Management</h2>
-      <button class="close-btn" onclick="closeModal('staffModal')">×</button>
-    </div>
-    <div id="staffStatus"></div>
-    <div class="action-grid" style="margin-top: 15px;">
-      <button class="action-btn green" onclick="staffAction('checkin', 'Jannat')">
-        <span class="icon">👨‍🍳</span><span>Jannat IN</span>
-      </button>
-      <button class="action-btn" onclick="staffAction('checkout', 'Jannat')">
-        <span class="icon">👨‍🍳</span><span>Jannat OUT</span>
-      </button>
-      <button class="action-btn green" onclick="staffAction('checkin', 'Nafiz')">
-        <span class="icon">👤</span><span>Nafiz IN</span>
-      </button>
-      <button class="action-btn" onclick="staffAction('checkout', 'Nafiz')">
-        <span class="icon">👤</span><span>Nafiz OUT</span>
-      </button>
-      <button class="action-btn full gold" onclick="openAdvance()">
-        <span class="icon">💵</span><span>Give Advance</span>
-      </button>
-      <button class="action-btn full blue" onclick="openSalary()">
-        <span class="icon">📊</span><span>View Salary</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- AI ASSISTANT MODAL -->
-<div class="modal-overlay" id="aiModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>🤖 AI Assistant</h2>
-      <button class="close-btn" onclick="closeModal('aiModal')">×</button>
-    </div>
-    <div class="ai-chat">
-      <div class="ai-messages" id="aiMessages">
-        <div class="ai-msg bot">
-          <div class="label">🤖 AI Assistant</div>
-          <div>Hi Boss! I'm your Indus Wok AI Assistant. I can help with:
-          <br>• 💰 Pricing strategy
-          <br>• 📱 Marketing ideas
-          <br>• 🍽️ Menu suggestions
-          <br>• 👥 Staff management
-          <br>• 📊 Business decisions
-          <br><br>What do you need help with?</div>
+    <div class="header-inner">
+      <div class="header-left">
+        <span class="header-logo">🐉</span>
+        <div>
+          <div class="header-title">INDUS WOK</div>
+          <div class="header-sub">Mira Road Enterprise</div>
         </div>
       </div>
-      <div class="suggestions">
-        <span class="suggestion" onclick="askSuggestion('How can I increase late-night orders?')">📈 Increase orders</span>
-        <span class="suggestion" onclick="askSuggestion('Give me 3 marketing ideas for Instagram')">📱 Instagram ideas</span>
-        <span class="suggestion" onclick="askSuggestion('Which dishes should I promote today?')">🍽️ Today's promo</span>
-        <span class="suggestion" onclick="askSuggestion('How to handle slow Monday sales?')">📉 Slow days</span>
-        <span class="suggestion" onclick="askSuggestion('Best combo deals for my menu?')">🎁 Combo ideas</span>
-      </div>
-      <div class="ai-input-row">
-        <input type="text" id="aiInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')askAI()">
-        <button onclick="askAI()">Ask</button>
-        <button onclick="voiceInput()" style="padding:14px;">🎤</button>
+      <div class="header-right">
+        <div>
+          <div class="user-badge" id="headerUser">Owner</div>
+          <div style="text-align:right;margin-top:3px">
+            <span class="role-badge role-Owner" id="headerRole">Owner</span>
+          </div>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">Exit</button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- CONTENT IDEA MODAL -->
-<div class="modal-overlay" id="contentModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>💡 Content Ideas</h2>
-      <button class="close-btn" onclick="closeModal('contentModal')">×</button>
+  <!-- NAV BAR -->
+  <div class="nav-bar">
+    <div class="nav-inner">
+      <button class="nav-btn active" onclick="showPage('dashboard')">
+        📊 Dashboard
+      </button>
+      <button class="nav-btn" onclick="showPage('sales')">
+        💰 Sales
+      </button>
+      <button class="nav-btn" onclick="showPage('expenses')">
+        💸 Expenses
+      </button>
+      <button class="nav-btn" onclick="showPage('inventory')">
+        📦 Inventory
+        <span class="badge" id="lowStockBadge" style="display:none">!</span>
+      </button>
+      <button class="nav-btn" onclick="showPage('vendors')">
+        🏪 Vendors
+      </button>
+      <button class="nav-btn" onclick="showPage('targets')">
+        🎯 Targets
+      </button>
+      <button class="nav-btn" onclick="showPage('dishes')">
+        🍽️ Dishes
+      </button>
+      <button class="nav-btn" onclick="showPage('money')">
+        💵 Money
+      </button>
+      <button class="nav-btn" onclick="showPage('reconcile')">
+        ⚖️ Cash
+      </button>
+      <button class="nav-btn owner-only" onclick="showPage('predictions')">
+        🤖 AI
+      </button>
+      <button class="nav-btn owner-only" onclick="showPage('audit')">
+        🔍 Audit
+      </button>
+      <button class="nav-btn owner-only" onclick="showPage('users')">
+        👥 Users
+      </button>
     </div>
-    <div id="contentArea"></div>
-    <button class="submit-btn" onclick="getNewContent()">🎲 Generate New Idea</button>
   </div>
-</div>
 
-<!-- TASKS MODAL -->
-<div class="modal-overlay" id="tasksModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>📋 Today's Tasks</h2>
-      <button class="close-btn" onclick="closeModal('tasksModal')">×</button>
-    </div>
-    <div id="tasksArea"></div>
-  </div>
-</div>
+  <!-- MAIN CONTENT -->
+  <div class="main">
 
-<!-- REPORTS MODAL -->
-<div class="modal-overlay" id="reportsModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>📊 Full Reports</h2>
-      <button class="close-btn" onclick="closeModal('reportsModal')">×</button>
-    </div>
-    <div id="reportsArea"></div>
-  </div>
-</div>
+    <!-- ======================================================
+         DASHBOARD PAGE
+         ====================================================== -->
+    <div class="page active" id="page-dashboard">
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-<div class="loader" id="loader"><div class="spinner"></div></div>
+      <!-- Banner -->
+      <div class="dashboard-banner">
+        <div>
+          <div class="banner-greeting" id="dashGreeting">Good Morning! 🌅</div>
+          <div class="banner-date" id="dashDate">Loading...</div>
+          <div style="margin-top:8px;font-size:13px;opacity:0.8"
+               id="dashMotivation">Let's have a great day!</div>
+        </div>
+        <div class="banner-icon">🐉</div>
+      </div>
 
-<!-- BOTTOM NAV -->
-<div class="bottom-nav">
-  <button class="nav-btn active" onclick="loadDashboard()">
-    <span class="icon">🏠</span><span>Home</span>
-  </button>
-  <button class="nav-btn" onclick="openModal('salesModal')">
-    <span class="icon">💰</span><span>Sales</span>
-  </button>
-  <button class="nav-btn" onclick="openModal('aiModal')">
-    <span class="icon">🤖</span><span>AI</span>
-  </button>
-  <button class="nav-btn" onclick="openModal('reportsModal')">
-    <span class="icon">📊</span><span>Reports</span>
-  </button>
-</div>
+      <!-- Quick Stats -->
+      <div class="grid-4" id="dashStats">
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-val" id="ds-sales">₹0</div>
+          <div class="stat-label">Today Sales</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-val blue" id="ds-orders">0</div>
+          <div class="stat-label">Orders</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val green" id="ds-profit">₹0</div>
+          <div class="stat-label">Net Profit</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-val" id="ds-margin">0%</div>
+          <div class="stat-label">Margin</div>
+        </div>
+      </div>
 
+      <!-- Targets Row -->
+      <div class="card" id="dashTargets">
+        <div class="card-title">🎯 Today's Targets</div>
+        <div id="targetBars">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Payment Breakdown -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">💳 Payment Split</div>
+          <div id="paymentSplit">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📉 Expense Split</div>
+          <div id="expSplit">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Low Stock Alert -->
+      <div id="dashLowStock"></div>
+
+      <!-- Quick Actions -->
+      <div class="card">
+        <div class="card-title">⚡ Quick Actions</div>
+        <div class="grid-3" style="gap:8px">
+          <button class="btn btn-primary btn-sm btn-full"
+                  onclick="showPage('sales')">
+            ➕ Add Sale
+          </button>
+          <button class="btn btn-outline btn-sm btn-full"
+                  onclick="showPage('expenses')">
+            💸 Add Expense
+          </button>
+          <button class="btn btn-outline btn-sm btn-full"
+                  onclick="showPage('inventory')">
+            📦 Stock
+          </button>
+          <button class="btn btn-gold btn-sm btn-full"
+                  onclick="sendDailyReport()">
+            📱 WA Report
+          </button>
+          <button class="btn btn-outline btn-sm btn-full"
+                  onclick="showPage('reconcile')">
+            ⚖️ Cash Check
+          </button>
+          <button class="btn btn-green btn-sm btn-full"
+                  onclick="showPage('predictions')">
+            🤖 AI Predict
+          </button>
+        </div>
+      </div>
+
+      <!-- Weekly Trend -->
+      <div class="card">
+        <div class="card-title">📈 This Week</div>
+        <div id="weeklyStats">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+    </div><!-- end dashboard -->
+
+    <!-- ======================================================
+         SALES PAGE
+         ====================================================== -->
+    <div class="page" id="page-sales">
+
+      <!-- Add Sale Form -->
+      <div class="card">
+        <div class="card-title">➕ Add Today's Sales</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="saleDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Total Sales (₹)</label>
+            <input class="form-input" type="number" id="saleTotalAmt"
+                   placeholder="15000" inputmode="numeric">
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label class="form-label">💵 Cash</label>
+            <input class="form-input" type="number" id="saleCash"
+                   placeholder="8000" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📱 UPI</label>
+            <input class="form-input" type="number" id="saleUPI"
+                   placeholder="5000" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">💳 Card</label>
+            <input class="form-input" type="number" id="saleCard"
+                   placeholder="2000" inputmode="numeric">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">📋 No. of Orders</label>
+            <input class="form-input" type="number" id="saleOrders"
+                   placeholder="40" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📝 Notes</label>
+            <input class="form-input" type="text" id="saleNotes"
+                   placeholder="Optional notes">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveSale()">
+          💾 Save Sales Entry
+        </button>
+      </div>
+
+      <!-- Recent Sales -->
+      <div class="card">
+        <div class="card-title">📋 Recent Sales</div>
+        <div class="table-wrap">
+          <table id="salesTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Sales</th>
+                <th>Cash</th>
+                <th>UPI</th>
+                <th>Orders</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody">
+              <tr><td colspan="6" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end sales -->
+
+    <!-- ======================================================
+         EXPENSES PAGE
+         ====================================================== -->
+    <div class="page" id="page-expenses">
+
+      <div class="card">
+        <div class="card-title">➕ Add Expense</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="expDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="expCat">
+              <option>Raw Materials</option>
+              <option>Vegetables</option>
+              <option>Packaging</option>
+              <option>Gas/Fuel</option>
+              <option>Salary</option>
+              <option>Utilities</option>
+              <option>Maintenance</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Vendor/Paid To</label>
+            <input class="form-input" type="text" id="expVendor"
+                   placeholder="Vihan, Amaan Bhai...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (₹)</label>
+            <input class="form-input" type="number" id="expAmt"
+                   placeholder="500" inputmode="numeric">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input class="form-input" type="text" id="expDesc"
+                 placeholder="What was this expense for?">
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveExpense()">
+          💾 Save Expense
+        </button>
+      </div>
+
+      <!-- Today's Expenses -->
+      <div class="card">
+        <div class="card-title">💸 Today's Expenses</div>
+        <div id="expensesList">Loading...</div>
+      </div>
+
+    </div><!-- end expenses -->
+
+    <!-- ======================================================
+         INVENTORY PAGE
+         ====================================================== -->
+    <div class="page" id="page-inventory">
+
+      <!-- Stock Overview -->
+      <div class="card">
+        <div class="card-title">📦 Stock Overview</div>
+        <div class="grid-3" id="invStats">
+          <div class="stat-card">
+            <div class="stat-icon">✅</div>
+            <div class="stat-val green" id="inv-ok">-</div>
+            <div class="stat-label">OK Items</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-val" style="color:var(--orange)" id="inv-low">-</div>
+            <div class="stat-label">Low Stock</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🚨</div>
+            <div class="stat-val red" id="inv-crit">-</div>
+            <div class="stat-label">Critical</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Update Stock -->
+      <div class="card">
+        <div class="card-title">🔄 Update Stock</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Item</label>
+            <input class="form-input" type="text" id="invItem"
+                   placeholder="Chicken, Paneer...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input class="form-input" type="number" id="invQty"
+                   placeholder="5" inputmode="decimal">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Unit</label>
+            <select class="form-select" id="invUnit">
+              <option>kg</option>
+              <option>ltr</option>
+              <option>pcs</option>
+              <option>packet</option>
+              <option>cylinder</option>
+              <option>box</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Operation</label>
+            <select class="form-select" id="invOp">
+              <option value="set">Set (Absolute)</option>
+              <option value="add">Add to existing</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <button class="btn btn-primary btn-full" onclick="saveInventory()">
+            💾 Update Stock
+          </button>
+          <button class="btn btn-outline btn-full" onclick="addWastage()">
+            🗑️ Record Wastage
+          </button>
+        </div>
+      </div>
+
+      <!-- Stock Table -->
+      <div class="card">
+        <div class="card-title">📊 Current Stock Levels</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Stock</th>
+                <th>Unit</th>
+                <th>Min</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end inventory -->
+
+    <!-- ======================================================
+         VENDORS PAGE
+         ====================================================== -->
+    <div class="page" id="page-vendors">
+
+      <!-- Add Vendor -->
+      <div class="card">
+        <div class="card-title">➕ Add Vendor</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Vendor Name</label>
+            <input class="form-input" type="text" id="vName"
+                   placeholder="Supplier name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="vCat">
+              <option>Vegetables</option>
+              <option>General Stock</option>
+              <option>Meat/Seafood</option>
+              <option>Packaging</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Phone</label>
+            <input class="form-input" type="tel" id="vPhone"
+                   placeholder="9876543210">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <input class="form-input" type="text" id="vNotes"
+                   placeholder="Optional notes">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveVendor()">
+          💾 Add Vendor
+        </button>
+      </div>
+
+      <!-- Vendor List -->
+      <div class="card">
+        <div class="card-title">🏪 Vendors</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Phone</th>
+                <th>Outstanding</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="vendorTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pay Vendor -->
+      <div class="card">
+        <div class="card-title">💳 Update Vendor Payment</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Vendor Name</label>
+            <input class="form-input" type="text" id="vpName"
+                   placeholder="Vihan">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (negative=payment made)</label>
+            <input class="form-input" type="number" id="vpAmount"
+                   placeholder="-500">
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="payVendor()">
+          ✅ Record Payment
+        </button>
+      </div>
+
+    </div><!-- end vendors -->
+
+    <!-- ======================================================
+         TARGETS PAGE
+         ====================================================== -->
+    <div class="page" id="page-targets">
+
+      <!-- Update Targets (Owner only) -->
+      <div class="card owner-only">
+        <div class="card-title">✏️ Update Targets</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Target Type</label>
+            <select class="form-select" id="targetType">
+              <option>Daily Sales</option>
+              <option>Weekly Sales</option>
+              <option>Monthly Sales</option>
+              <option>Monthly Profit</option>
+              <option>Daily Orders</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Amount (₹)</label>
+            <input class="form-input" type="number" id="targetAmt"
+                   placeholder="15000" inputmode="numeric">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveTarget()">
+          🎯 Update Target
+        </button>
+      </div>
+
+      <!-- Targets Display -->
+      <div id="targetsDisplay">
+        <!-- Rendered by JS -->
+      </div>
+
+    </div><!-- end targets -->
+
+    <!-- ======================================================
+         DISHES PAGE (Best Sellers + Profit)
+         ====================================================== -->
+    <div class="page" id="page-dishes">
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="btn btn-primary btn-sm" onclick="showDishTab('bestsellers')">
+          🏆 Best Sellers
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="showDishTab('profit')">
+          💰 Profit/Dish
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="showDishTab('adddish')">
+          ➕ Log Sale
+        </button>
+      </div>
+
+      <!-- Best Sellers -->
+      <div id="dishTab-bestsellers">
+        <div class="card">
+          <div class="card-title">🏆 Best Selling Dishes</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Dish</th>
+                  <th>Qty</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="bestSellerTable">
+                <tr><td colspan="4" class="empty">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profit per Dish -->
+      <div id="dishTab-profit" style="display:none">
+        <div class="card">
+          <div class="card-title">💰 Set Dish Cost</div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Dish Name</label>
+              <input class="form-input" type="text" id="dishName"
+                     placeholder="Chicken Fried Rice">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Selling Price (₹)</label>
+              <input class="form-input" type="number" id="dishSell"
+                     placeholder="180" inputmode="numeric">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cost Price (₹)</label>
+              <input class="form-input" type="number" id="dishCost"
+                     placeholder="70" inputmode="numeric">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="saveDishCost()">
+            💾 Save Cost
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📊 Dish Profitability</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dish</th>
+                  <th>Sell</th>
+                  <th>Cost</th>
+                  <th>Profit</th>
+                  <th>Margin</th>
+                </tr>
+              </thead>
+              <tbody id="dishProfitTable">
+                <tr><td colspan="5" class="empty">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Dish Sale -->
+      <div id="dishTab-adddish" style="display:none">
+        <div class="card">
+          <div class="card-title">➕ Log Dish Sale</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Dish Name</label>
+              <input class="form-input" type="text" id="dsDish"
+                     placeholder="Chicken Fried Rice">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="form-select" id="dsCat">
+                <option>Rice</option>
+                <option>Noodles</option>
+                <option>Starters</option>
+                <option>Soup</option>
+                <option>Drinks</option>
+                <option>Momos</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label class="form-label">Quantity Sold</label>
+              <input class="form-input" type="number" id="dsQty"
+                     placeholder="5" inputmode="numeric">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Price (₹)</label>
+              <input class="form-input" type="number" id="dsPrice"
+                     placeholder="180" inputmode="numeric">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input class="form-input" type="date" id="dsDate">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" onclick="saveDishSale()">
+            💾 Log Sale
+          </button>
+        </div>
+      </div>
+
+    </div><!-- end dishes -->
+
+    <!-- ======================================================
+         MONEY RECEIVED PAGE
+         ====================================================== -->
+    <div class="page" id="page-money">
+
+      <div class="card">
+        <div class="card-title">💵 Record Money Received</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="date" id="mrDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">From</label>
+            <input class="form-input" type="text" id="mrFrom"
+                   placeholder="Customer, Owner...">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Reason</label>
+            <input class="form-input" type="text" id="mrReason"
+                   placeholder="Advance, Refund, Capital...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount (₹)</label>
+            <input class="form-input" type="number" id="mrAmount"
+                   placeholder="1000" inputmode="numeric">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Mode</label>
+          <select class="form-select" id="mrMode">
+            <option>Cash</option>
+            <option>UPI</option>
+            <option>Bank Transfer</option>
+          </select>
+        </div>
+        <button class="btn btn-green btn-full" onclick="saveMoneyReceived()">
+          💾 Record Money Received
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Money Received History</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>From</th>
+                <th>Reason</th>
+                <th>Amount</th>
+                <th>Mode</th>
+              </tr>
+            </thead>
+            <tbody id="moneyTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;text-align:right">
+          <strong>Total: </strong>
+          <span id="moneyTotal" style="color:var(--green);font-weight:800">₹0</span>
+        </div>
+      </div>
+
+    </div><!-- end money -->
+
+    <!-- ======================================================
+         CASH RECONCILIATION PAGE
+         ====================================================== -->
+    <div class="page" id="page-reconcile">
+
+      <div class="card">
+        <div class="card-title">⚖️ Daily Cash Reconciliation</div>
+        <div class="alert alert-info">
+          ℹ️ Do this at end of day to verify cash matches records
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Opening Cash (₹)</label>
+            <input class="form-input" type="number" id="rcOpening"
+                   placeholder="2000" inputmode="numeric">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Actual Cash in Hand (₹)</label>
+            <input class="form-input" type="number" id="rcActual"
+                   placeholder="Enter physical cash count" inputmode="numeric">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="doReconcile()">
+          ⚖️ Reconcile Cash
+        </button>
+      </div>
+
+      <!-- Result -->
+      <div class="card" id="reconcileResult" style="display:none">
+        <div class="card-title">📊 Reconciliation Result</div>
+        <div id="reconcileResultBody">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="card">
+        <div class="card-title">📋 Reconciliation History</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Expected</th>
+                <th>Actual</th>
+                <th>Difference</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="reconcileTable">
+              <tr><td colspan="5" class="empty">No records yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end reconcile -->
+
+    <!-- ======================================================
+         AI PREDICTIONS PAGE
+         ====================================================== -->
+    <div class="page" id="page-predictions">
+
+      <div class="card" style="background:linear-gradient(135deg,#0d1117,#1a1a2e);border-color:#2196F3">
+        <div class="card-title" style="color:#64b5f6">🤖 AI Sales Predictions</div>
+        <div class="alert alert-info" style="margin-bottom:0">
+          Based on your historical sales data from Google Sheets
+        </div>
+      </div>
+
+      <!-- Prediction Cards -->
+      <div class="grid-2">
+        <div class="stat-card" style="border-color:var(--blue)">
+          <div class="stat-icon">📅</div>
+          <div class="stat-val blue" id="pred-tomorrow">₹-</div>
+          <div class="stat-label" id="pred-tomorrow-day">Tomorrow Prediction</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📆</div>
+          <div class="stat-val" id="pred-week">₹-</div>
+          <div class="stat-label">Week Ahead</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-val" id="pred-avg">₹-</div>
+          <div class="stat-label">Daily Average</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🗓️</div>
+          <div class="stat-val" id="pred-month">₹-</div>
+          <div class="stat-label">Month Forecast</div>
+        </div>
+      </div>
+
+      <!-- Best/Worst Days -->
+      <div class="card">
+        <div class="card-title">📈 Day-wise Performance</div>
+        <div id="dayInsights">Loading...</div>
+      </div>
+
+      <!-- Tips -->
+      <div class="card" id="aiTips">
+        <div class="card-title">💡 AI Recommendations</div>
+        <div id="aiTipsList">Loading...</div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px">
+        <button class="btn btn-blue btn-full" onclick="loadPredictions()">
+          🔄 Refresh Predictions
+        </button>
+      </div>
+
+    </div><!-- end predictions -->
+
+    <!-- ======================================================
+         AUDIT LOG PAGE (Owner only)
+         ====================================================== -->
+    <div class="page" id="page-audit">
+
+      <div class="card">
+        <div class="card-title">🔍 Audit Log - Who Did What</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="auditTable">
+              <tr><td colspan="5" class="empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end audit -->
+
+    <!-- ======================================================
+         USERS PAGE (Owner only)
+         ====================================================== -->
+    <div class="page" id="page-users">
+
+      <div class="card owner-only">
+        <div class="card-title">➕ Add User</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input class="form-input" type="text" id="uName"
+                   placeholder="Staff name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" id="uEmail"
+                   placeholder="staff@induswok.com">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="form-select" id="uRole">
+              <option>Owner</option>
+              <option>Manager</option>
+              <option>Staff</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">PIN (4 digits)</label>
+            <input class="form-input" type="number" id="uPin"
+                   placeholder="1234" maxlength="4">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="saveUser()">
+          👤 Add User
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">👥 Team Members</div>
+        <div id="usersList">Loading...</div>
+      </div>
+
+    </div><!-- end users -->
+
+  </div><!-- end main -->
+
+</div><!-- end mainApp -->
+
+<!-- WhatsApp FAB -->
+<button id="whatsappFab" onclick="quickWhatsApp()" title="Send WhatsApp Report">
+  📱
+</button>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
 <script>
-// ⚠️ REPLACE THIS WITH YOUR WEB APP URL
-const API_URL = "https://script.google.com/macros/s/AKfycbyuGY-NQ_BMU4UcNy1VefXAHOSDTzeFag3RnzOPEMHFeSMXl3mLkUrv3-p5arhA-XNG/exec";
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyuGY-NQ_BMU4UcNy1VefXAHOSDTzeFag3RnzOPEMHFeSMXl3mLkUrv3-p5arhA-XNG/exec"; // ← REPLACE THIS
 
-let weekChart = null;
-let billPhotoData = null;
+// ============================================================
+// APP STATE
+// ============================================================
+let currentUser = null;
+let currentPage = "dashboard";
 
-// Update time
-function updateTime() {
-  document.getElementById('currentTime').textContent = 
-    '⏰ ' + new Date().toLocaleString("en-IN", {weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: true});
-}
-setInterval(updateTime, 1000);
-updateTime();
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  // Check if already logged in (session)
+  const saved = sessionStorage.getItem("iw_user");
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    showApp();
+  }
 
-// API call helper
-async function apiCall(action, data = {}) {
-  showLoader();
-  try {
-    const params = new URLSearchParams({ action: action, ...data });
-    const response = await fetch(API_URL + "?" + params.toString(), {
-      method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "text/plain" }
+  // Set default dates
+  const today = new Date().toISOString().split("T")[0];
+  const dateFields = [
+    "saleDate","expDate","mrDate","dsDate"
+  ];
+  dateFields.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.value = today;
+  });
+};
+
+// ============================================================
+// LOGIN / LOGOUT
+// ============================================================
+function doLogin() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const pin   = document.getElementById("loginPin").value.trim();
+  const errEl = document.getElementById("loginError");
+  const btn   = document.querySelector(".login-btn");
+
+  if (!email || !pin) {
+    showLoginError("Please enter username and PIN");
+    return;
+  }
+
+  btn.innerHTML = '<span class="spinner"></span> Logging in...';
+  btn.disabled = true;
+  errEl.style.display = "none";
+
+  call("login", { email: email, pin: pin })
+    .then(function(res) {
+      if (res.success) {
+        currentUser = res.user;
+        sessionStorage.setItem("iw_user", JSON.stringify(currentUser));
+        showApp();
+      } else {
+        showLoginError(res.error || "Invalid credentials. Try again.");
+        btn.innerHTML = "🔐 LOGIN";
+        btn.disabled = false;
+      }
+    })
+    .catch(function() {
+      showLoginError("Connection error. Check network.");
+      btn.innerHTML = "🔐 LOGIN";
+      btn.disabled = false;
     });
-    const result = await response.json();
-    hideLoader();
-    return result;
-  } catch(err) {
-    hideLoader();
-    showToast("Error: " + err.message, true);
-    return { success: false };
-  }
 }
 
-function showLoader() { document.getElementById('loader').classList.add('show'); }
-function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+function showLoginError(msg) {
+  const el = document.getElementById("loginError");
+  el.textContent = "❌ " + msg;
+  el.style.display = "block";
+}
 
-function showToast(msg, isError = false) {
-  const t = document.getElementById('toast');
+function doLogout() {
+  currentUser = null;
+  sessionStorage.removeItem("iw_user");
+  document.getElementById("mainApp").style.display = "none";
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("loginEmail").value = "";
+  document.getElementById("loginPin").value = "";
+  document.getElementById("loginError").style.display = "none";
+  document.querySelector(".login-btn").innerHTML = "🔐 LOGIN";
+  document.querySelector(".login-btn").disabled = false;
+}
+
+function showApp() {
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
+  document.getElementById("whatsappFab").style.display = "block";
+
+  // Update header
+  document.getElementById("headerUser").textContent = currentUser.name;
+  const roleEl = document.getElementById("headerRole");
+  roleEl.textContent = currentUser.role;
+  roleEl.className = "role-badge role-" + currentUser.role;
+
+  // Apply role-based visibility
+  applyRoleAccess();
+
+  // Load initial data
+  loadDashboard();
+}
+
+function applyRoleAccess() {
+  const isOwner   = currentUser.role === "Owner";
+  const isMgr     = currentUser.role === "Manager" || isOwner;
+
+  // Show owner-only elements
+  document.querySelectorAll(".owner-only").forEach(function(el) {
+    el.style.display = isOwner ? "block" : "none";
+  });
+  // Show manager-only elements
+  document.querySelectorAll(".manager-only").forEach(function(el) {
+    el.style.display = isMgr ? "block" : "none";
+  });
+  // Show/hide nav buttons
+  document.querySelectorAll(".nav-btn.owner-only").forEach(function(el) {
+    el.style.display = isOwner ? "flex" : "none";
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  // Hide all pages
+  document.querySelectorAll(".page").forEach(function(p) {
+    p.classList.remove("active");
+  });
+  // Deactivate nav buttons
+  document.querySelectorAll(".nav-btn").forEach(function(b) {
+    b.classList.remove("active");
+  });
+
+  // Show target page
+  document.getElementById("page-" + page).classList.add("active");
+  currentPage = page;
+
+  // Activate nav button
+  document.querySelectorAll(".nav-btn").forEach(function(b) {
+    if (b.getAttribute("onclick") && b.getAttribute("onclick").includes("'" + page + "'")) {
+      b.classList.add("active");
+    }
+  });
+
+  // Load page data
+  switch(page) {
+    case "dashboard":   loadDashboard();    break;
+    case "sales":       loadSales();        break;
+    case "expenses":    loadExpenses();     break;
+    case "inventory":   loadInventory();    break;
+    case "vendors":     loadVendors();      break;
+    case "targets":     loadTargets();      break;
+    case "dishes":      loadBestSellers(); loadDishProfits(); break;
+    case "money":       loadMoneyReceived(); break;
+    case "predictions": loadPredictions();  break;
+    case "audit":       loadAuditLog();     break;
+    case "users":       loadUsers();        break;
+  }
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// API CALL HELPER
+// ============================================================
+function call(action, data) {
+  const payload = Object.assign({ action: action, user: currentUser }, data || {});
+  return fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json(); });
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, duration) {
+  const t = document.getElementById("toast");
   t.textContent = msg;
-  t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  t.classList.add("show");
+  setTimeout(function() { t.classList.remove("show"); }, duration || 3000);
 }
 
-function openModal(id) {
-  document.getElementById(id).classList.add('active');
-  if (id === 'staffModal') loadStaffStatus();
-  if (id === 'contentModal') getNewContent();
-  if (id === 'tasksModal') loadTasks();
-  if (id === 'reportsModal') loadReports();
+// ============================================================
+// DASHBOARD
+// ============================================================
+function loadDashboard() {
+  updateGreeting();
+
+  // Load summary
+  call("getsummary").then(function(res) {
+    if (!res.success) return;
+    const s = res.summary;
+
+    document.getElementById("ds-sales").textContent   = "₹" + fmt(s.sales);
+    document.getElementById("ds-orders").textContent  = s.orders;
+    document.getElementById("ds-profit").textContent  = "₹" + fmt(Math.abs(s.profit));
+    document.getElementById("ds-margin").textContent  = s.margin + "%";
+
+    const profitEl = document.getElementById("ds-profit");
+    profitEl.className = "stat-val " + (s.profit >= 0 ? "green" : "red");
+
+    // Payment split
+    document.getElementById("paymentSplit").innerHTML =
+      payRow("💵 Cash",  s.cash,  s.sales, "#FFD700") +
+      payRow("📱 UPI",   s.upi,   s.sales, "#2196F3") +
+      payRow("💳 Card",  s.card,  s.sales, "#00c851");
+
+    // Expense split
+    document.getElementById("expSplit").innerHTML =
+      payRow("📦 Materials", s.rawMaterials, s.totalExp, "#ff8800") +
+      payRow("💼 Other",     s.otherExp,     s.totalExp, "#9c27b0");
+  });
+
+  // Targets
+  call("gettargets").then(function(res) {
+    if (!res.success) return;
+    renderDashTargets(res);
+  });
+
+  // Inventory alerts
+  call("getinventory").then(function(res) {
+    if (!res.success) return;
+    const lowItems = res.items.filter(function(i) { return i.status !== "OK"; });
+
+    if (lowItems.length > 0) {
+      document.getElementById("lowStockBadge").style.display = "inline";
+      document.getElementById("lowStockBadge").textContent = lowItems.length;
+
+      let html = '<div class="alert alert-warn">⚠️ <strong>Low Stock:</strong> ' +
+        lowItems.map(function(i) { return i.item; }).join(", ") +
+        ' — <button class="btn btn-outline btn-sm" onclick="showPage(\'inventory\')" ' +
+        'style="padding:4px 10px;margin-left:8px">View</button></div>';
+      document.getElementById("dashLowStock").innerHTML = html;
+    } else {
+      document.getElementById("lowStockBadge").style.display = "none";
+      document.getElementById("dashLowStock").innerHTML = "";
+    }
+  });
+
+  // Weekly stats
+  call("getweekly").then(function(res) {
+    if (!res.success) return;
+    renderWeekly(res);
+  });
 }
 
-function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
+function payRow(label, val, total, color) {
+  const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+  return '<div style="margin-bottom:10px">' +
+    '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
+    '<span>' + label + '</span>' +
+    '<span style="color:' + color + ';font-weight:700">₹' + fmt(val) + ' (' + pct + '%)</span>' +
+    '</div>' +
+    '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+    '</div>';
 }
 
-// LOAD DASHBOARD
-async function loadDashboard() {
-  const summary = await apiCall('getsummary');
-  if (summary.success) {
-    document.getElementById('todaySales').textContent = '₹' + (summary.sales || 0).toLocaleString('en-IN');
-    document.getElementById('todayOrders').textContent = summary.orders || 0;
-    document.getElementById('todayProfit').textContent = '₹' + Math.abs(summary.profit || 0).toLocaleString('en-IN');
-    document.getElementById('todayExp').textContent = '₹' + (summary.totalExp || 0).toLocaleString('en-IN');
-    
-    const profitCard = document.getElementById('profitCard');
-    profitCard.className = 'stat-card ' + (summary.profit >= 0 ? 'profit' : 'loss');
+function renderDashTargets(t) {
+  let html = "";
+
+  function targetRow(label, achieved, target, icon) {
+    const pct = Math.min(100, target > 0 ? Math.round((achieved / target) * 100) : 0);
+    const cls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
+    const color = pct >= 100 ? "var(--green)" : pct >= 70 ? "var(--orange)" : "#ff4444";
+    return '<div style="margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">' +
+      '<span style="font-size:13px">' + icon + " " + label + '</span>' +
+      '<span style="font-size:12px;color:' + color + ';font-weight:700">' +
+      '₹' + fmt(achieved) + ' / ₹' + fmt(target) + ' (' + pct + '%)</span>' +
+      '</div>' +
+      '<div class="progress-wrap"><div class="progress-bar ' + cls + '" style="width:' + pct + '%"></div></div>' +
+      '</div>';
   }
-  
-  loadChart();
+
+  html += targetRow("Daily Sales",    t.daily.achieved,   t.daily.target,   "💰");
+  html += targetRow("Daily Orders",   t.orders.achieved,  t.orders.target,  "📋");
+  html += targetRow("Monthly Sales",  t.monthly.achieved, t.monthly.target, "📅");
+
+  document.getElementById("targetBars").innerHTML = html;
 }
 
-async function loadChart() {
-  const data = await apiCall('getchartdata');
-  if (data.success && data.data) {
-    const ctx = document.getElementById('weekChart').getContext('2d');
-    if (weekChart) weekChart.destroy();
-    weekChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.data.map(d => d.date),
-        datasets: [{
-          label: 'Sales',
-          data: data.data.map(d => d.sales),
-          borderColor: '#FFD700',
-          backgroundColor: 'rgba(255,215,0,0.2)',
-          tension: 0.4, fill: true
-        }, {
-          label: 'Expenses',
-          data: data.data.map(d => d.expenses),
-          borderColor: '#f44336',
-          backgroundColor: 'rgba(244,67,54,0.1)',
-          tension: 0.4, fill: true
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { labels: { color: '#FFD700' } } },
-        scales: {
-          y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-          x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-        }
+function renderWeekly(data) {
+  const days = data.days || [];
+  if (days.length === 0) {
+    document.getElementById("weeklyStats").innerHTML =
+      '<div class="empty">No weekly data yet</div>';
+    return;
+  }
+
+  const maxSales = Math.max.apply(null, days.map(function(d) { return d.sales || 0; })) || 1;
+
+  let html = '<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding:0 4px">';
+  days.forEach(function(d) {
+    const pct = Math.round(((d.sales || 0) / maxSales) * 100);
+    const isToday = d.isToday;
+    html += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">' +
+      '<div style="font-size:9px;color:var(--text-muted)">₹' + shortNum(d.sales || 0) + '</div>' +
+      '<div style="width:100%;height:' + pct + '%;min-height:4px;border-radius:4px 4px 0 0;' +
+      'background:' + (isToday ? "var(--gold)" : "var(--red)") + ';transition:height 0.5s"></div>' +
+      '<div style="font-size:10px;color:' + (isToday ? "var(--gold)" : "var(--text-muted)") +
+      ';font-weight:' + (isToday ? "700" : "400") + '">' + d.day + '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  document.getElementById("weeklyStats").innerHTML = html;
+}
+
+function updateGreeting() {
+  const hour = new Date().getHours();
+  let greeting = hour < 12 ? "Good Morning! 🌅" : hour < 17 ? "Good Afternoon! ☀️" : "Good Evening! 🌙";
+  if (currentUser) greeting = greeting.replace("Good", "Good " + currentUser.name.split(" ")[0] + ",");
+
+  document.getElementById("dashGreeting").textContent = greeting;
+  document.getElementById("dashDate").textContent =
+    new Date().toLocaleDateString("en-IN", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+
+  const motivations = [
+    "Every order counts! 🍜",
+    "Consistency is the key! 💪",
+    "Great food = Happy customers! 🐉",
+    "Push for the daily target! 🎯",
+    "Mira Road's best restaurant! ⭐"
+  ];
+  document.getElementById("dashMotivation").textContent =
+    motivations[new Date().getDay() % motivations.length];
+}
+
+// ============================================================
+// SALES
+// ============================================================
+function saveSale() {
+  const d = {
+    date:   document.getElementById("saleDate").value,
+    total:  document.getElementById("saleTotalAmt").value,
+    cash:   document.getElementById("saleCash").value || 0,
+    upi:    document.getElementById("saleUPI").value || 0,
+    card:   document.getElementById("saleCard").value || 0,
+    orders: document.getElementById("saleOrders").value || 0,
+    notes:  document.getElementById("saleNotes").value,
+    user:   currentUser.name,
+    role:   currentUser.role
+  };
+
+  if (!d.date || !d.total) {
+    showToast("❌ Please fill date and total sales");
+    return;
+  }
+
+  call("addsale", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ Sale saved! ₹" + fmt(d.total));
+      loadSales();
+      loadDashboard();
+    } else {
+      showToast("❌ " + (res.error || "Error saving"));
+    }
+  });
+}
+
+function loadSales() {
+  call("getsales").then(function(res) {
+    if (!res.success) return;
+    const tbody = document.getElementById("salesTableBody");
+    if (!res.sales || res.sales.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No sales data yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = res.sales.slice(-20).reverse().map(function(s) {
+      return '<tr>' +
+        '<td>' + formatDate(s.date) + '</td>' +
+        '<td style="color:var(--gold);font-weight:700">₹' + fmt(s.total) + '</td>' +
+        '<td>₹' + fmt(s.cash) + '</td>' +
+        '<td>₹' + fmt(s.upi) + '</td>' +
+        '<td>' + (s.orders || 0) + '</td>' +
+        '<td style="color:var(--text-muted);font-size:12px">' + (s.notes || "-") + '</td>' +
+        '</tr>';
+    }).join("");
+  });
+}
+
+// ============================================================
+// EXPENSES
+// ============================================================
+function saveExpense() {
+  const d = {
+    date:   document.getElementById("expDate").value,
+    cat:    document.getElementById("expCat").value,
+    vendor: document.getElementById("expVendor").value,
+    amount: document.getElementById("expAmt").value,
+    desc:   document.getElementById("expDesc").value,
+    user:   currentUser.name,
+    role:   currentUser.role
+  };
+
+  if (!d.date || !d.amount) {
+    showToast("❌ Please fill date and amount");
+    return;
+  }
+
+  call("addexpense", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ Expense saved! ₹" + fmt(d.amount));
+      loadExpenses();
+      document.getElementById("expAmt").value = "";
+      document.getElementById("expDesc").value = "";
+      document.getElementById("expVendor").value = "";
+    } else {
+      showToast("❌ " + (res.error || "Error"));
+    }
+  });
+}
+
+function loadExpenses() {
+  call("getexpenses").then(function(res) {
+    if (!res.success) return;
+    const container = document.getElementById("expensesList");
+    if (!res.expenses || res.expenses.length === 0) {
+      container.innerHTML = '<div class="empty"><div class="empty-icon">💸</div>No expenses today</div>';
+      return;
+    }
+
+    let total = 0;
+    let html = '<div class="table-wrap"><table>' +
+      '<thead><tr><th>Category</th><th>Vendor</th><th>Amount</th><th>Notes</th></tr></thead><tbody>';
+
+    res.expenses.slice(-20).reverse().forEach(function(e) {
+      total += e.amount || 0;
+      html += '<tr>' +
+        '<td><span class="status status-warn">' + e.cat + '</span></td>' +
+        '<td>' + (e.vendor || "-") + '</td>' +
+        '<td style="color:#ff8800;font-weight:700">₹' + fmt(e.amount) + '</td>' +
+        '<td style="color:var(--text-muted);font-size:12px">' + (e.desc || "-") + '</td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    html += '<div style="text-align:right;margin-top:10px">' +
+      '<strong>Total: </strong><span style="color:var(--orange);font-weight:800">₹' + fmt(total) + '</span></div>';
+
+    container.innerHTML = html;
+  });
+}
+
+// ============================================================
+// INVENTORY
+// ============================================================
+function loadInventory() {
+  call("getinventory").then(function(res) {
+    if (!res.success) return;
+    let ok = 0, low = 0, crit = 0;
+
+    const tbody = document.getElementById("inventoryTable");
+    tbody.innerHTML = res.items.map(function(item) {
+      if (item.status === "OK")       ok++;
+      else if (item.status === "LOW") low++;
+      else                            crit++;
+
+      const cls = item.status === "OK" ? "status-ok" : item.status === "LOW" ? "status-low" : "status-critical";
+      return '<tr>' +
+        '<td style="font-weight:600">' + item.item + '</td>' +
+        '<td style="font-weight:700;color:' + (item.status==="OK"?"var(--green)":item.status==="LOW"?"var(--orange)":"#ff4444") +
+        '">' + item.current + '</td>' +
+        '<td style="color:var(--text-muted)">' + item.unit + '</td>' +
+        '<td style="color:var(--text-muted)">' + item.min + '</td>' +
+        '<td><span class="status ' + cls + '">' + item.status + '</span></td>' +
+        '</tr>';
+    }).join("");
+
+    document.getElementById("inv-ok").textContent   = ok;
+    document.getElementById("inv-low").textContent  = low;
+    document.getElementById("inv-crit").textContent = crit;
+  });
+}
+
+function saveInventory() {
+  const d = {
+    item:      document.getElementById("invItem").value.trim(),
+    quantity:  document.getElementById("invQty").value,
+    unit:      document.getElementById("invUnit").value,
+    operation: document.getElementById("invOp").value,
+    user:      currentUser.name,
+    role:      currentUser.role
+  };
+
+  if (!d.item || !d.quantity) {
+    showToast("❌ Fill item name and quantity");
+    return;
+  }
+
+  call("updateinventory", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ " + res.message);
+      loadInventory();
+      document.getElementById("invItem").value = "";
+      document.getElementById("invQty").value  = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
+}
+
+function addWastage() {
+  const item = document.getElementById("invItem").value.trim();
+  const qty  = document.getElementById("invQty").value;
+
+  if (!item || !qty) {
+    showToast("❌ Fill item and quantity first");
+    return;
+  }
+
+  const reason = prompt("Reason for wastage?") || "Spoiled";
+  const cost   = prompt("Cost of wastage (₹)?") || 0;
+
+  call("addwastage", {
+    item: item, quantity: qty,
+    unit: document.getElementById("invUnit").value,
+    reason: reason, cost: cost,
+    user: currentUser.name
+  }).then(function(res) {
+    if (res.success) {
+      showToast("✅ Wastage recorded");
+      loadInventory();
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
+}
+
+// ============================================================
+// VENDORS
+// ============================================================
+function loadVendors() {
+  call("getvendors").then(function(res) {
+    if (!res.success) return;
+    const tbody = document.getElementById("vendorTable");
+
+    if (!res.vendors || res.vendors.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No vendors yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = res.vendors.map(function(v) {
+      const outstanding = parseFloat(v.outstanding) || 0;
+      return '<tr>' +
+        '<td style="font-weight:700">' + v.name + '</td>' +
+        '<td><span class="status status-warn">' + v.category + '</span></td>' +
+        '<td>' + (v.phone || "-") + '</td>' +
+        '<td style="color:' + (outstanding > 0 ? "#ff4444" : "var(--green)") + ';font-weight:700">' +
+        (outstanding > 0 ? "₹" + fmt(outstanding) + " due" : "Clear ✅") + '</td>' +
+        '<td>' +
+        '<button class="btn btn-sm btn-outline" onclick="quickPayVendor(\'' + v.name + '\')">' +
+        '💳 Pay</button>' +
+        '</td>' +
+        '</tr>';
+    }).join("");
+  });
+}
+
+function saveVendor() {
+  const d = {
+    name:     document.getElementById("vName").value.trim(),
+    category: document.getElementById("vCat").value,
+    phone:    document.getElementById("vPhone").value,
+    notes:    document.getElementById("vNotes").value
+  };
+  if (!d.name) { showToast("❌ Enter vendor name"); return; }
+
+  call("addvendor", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ Vendor added!");
+      loadVendors();
+      document.getElementById("vName").value = "";
+      document.getElementById("vPhone").value = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
+}
+
+function payVendor() {
+  const name   = document.getElementById("vpName").value.trim();
+  const amount = document.getElementById("vpAmount").value;
+  if (!name || !amount) { showToast("❌ Fill vendor name and amount"); return; }
+
+  call("updatevendorpayment", { name: name, amount: parseFloat(amount) })
+    .then(function(res) {
+      if (res.success) {
+        showToast("✅ Payment recorded");
+        loadVendors();
+        document.getElementById("vpName").value   = "";
+        document.getElementById("vpAmount").value = "";
+      } else {
+        showToast("❌ " + res.error);
       }
     });
-  }
 }
 
-// SUBMIT SALES
-// Update submitSales function
-async function submitSales() {
-  const data = {
-    date: document.getElementById('salesDate').value,
-    total: document.getElementById('salesTotal').value,
-    cash: document.getElementById('salesCash').value,
-    upi: document.getElementById('salesUPI').value,
-    card: document.getElementById('salesCard').value,
-    cashOut: document.getElementById('salesCashOut').value,
-    orders: document.getElementById('salesOrders').value,
-    notes: document.getElementById('salesNotes').value
+function quickPayVendor(name) {
+  document.getElementById("vpName").value = name;
+  document.getElementById("vpAmount").scrollIntoView({ behavior: "smooth" });
+}
+
+// ============================================================
+// TARGETS
+// ============================================================
+function loadTargets() {
+  call("gettargets").then(function(res) {
+    if (!res.success) return;
+    renderTargets(res);
+  });
+}
+
+function renderTargets(t) {
+  function targetCard(label, data, icon, color) {
+    const pct = Math.min(100, data.target > 0 ? Math.round((data.achieved / data.target) * 100) : 0);
+    const statusCls = pct >= 100 ? "status-good" : pct >= 70 ? "status-warn" : "status-danger";
+    const statusTxt = pct >= 100 ? "✅ Achieved!" : pct >= 70 ? "⚠️ Almost" : "🔴 Behind";
+    const progressCls = pct >= 100 ? "progress-green" : pct >= 70 ? "progress-orange" : "progress-red";
+
+    return '<div class="card" style="border-color:' + color + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">' +
+      '<div style="font-size:15px;font-weight:700">' + icon + " " + label + '</div>' +
+      '<span class="status ' + statusCls + '">' + statusTxt + '</span>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px">' +
+      '<span>Achieved: <strong style="color:' + color + '">₹' + fmt(data.achieved) + '</strong></span>' +
+      '<span>Target: <strong>₹' + fmt(data.target) + '</strong></span>' +
+      '</div>' +
+      '<div class="progress-wrap" style="height:14px">' +
+      '<div class="progress-bar ' + progressCls + '" style="width:' + pct + '%"></div>' +
+      '</div>' +
+      '<div style="text-align:center;margin-top:6px;font-size:13px;font-weight:800;color:' + color + '">' +
+      pct + '% Complete' +
+      '</div></div>';
+  }
+
+  document.getElementById("targetsDisplay").innerHTML =
+    targetCard("Daily Sales",   t.daily,   "💰", "#FFD700") +
+    targetCard("Daily Orders",  t.orders,  "📋", "#2196F3") +
+    targetCard("Weekly Sales",  t.weekly,  "📅", "#00c851") +
+    targetCard("Monthly Sales", t.monthly, "🗓️", "#ff8800") +
+    targetCard("Monthly Profit",t.profit,  "💎", "#9c27b0");
+}
+
+function saveTarget() {
+  const d = {
+    targetType: document.getElementById("targetType").value,
+    amount:     document.getElementById("targetAmt").value
   };
-  if (!data.total) return showToast("Enter total sales!", true);
-  const result = await apiCall('addsales', data);
-  if (result.success) {
-    showToast("✅ " + result.message);
-    closeModal('salesModal');
-    loadDashboard();
-    document.querySelectorAll('#salesModal input[type=number], #salesModal textarea').forEach(i => i.value = i.id === 'salesNotes' ? '' : '0');
-    document.getElementById('salesTotal').value = '';
-    setDefaultDates();
-  }
+  if (!d.amount) { showToast("❌ Enter target amount"); return; }
+
+  call("updatetarget", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ Target updated!");
+      loadTargets();
+      document.getElementById("targetAmt").value = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
 }
 
-// Update submitStock function
-async function submitStock() {
-  const data = {
-    date: document.getElementById('stockDate').value,
-    item: document.getElementById('stockItem').value,
-    quantity: document.getElementById('stockQty').value,
-    unit: document.getElementById('stockUnit').value,
-    rate: document.getElementById('stockRate').value,
-    supplier: document.getElementById('stockSupplier').value,
-    paymentMode: document.getElementById('stockPayment').value
+// ============================================================
+// DISHES
+// ============================================================
+function showDishTab(tab) {
+  ["bestsellers","profit","adddish"].forEach(function(t) {
+    document.getElementById("dishTab-" + t).style.display = t === tab ? "block" : "none";
+  });
+}
+
+function loadBestSellers() {
+  call("getbestsellers").then(function(res) {
+    if (!res.success) return;
+    const tbody = document.getElementById("bestSellerTable");
+    if (!res.dishes || res.dishes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No dish sales logged yet</td></tr>';
+      return;
+    }
+    const medals = ["🥇","🥈","🥉"];
+    tbody.innerHTML = res.dishes.map(function(d, i) {
+      return '<tr>' +
+        '<td>' + (medals[i] || "#" + (i+1)) + '</td>' +
+        '<td style="font-weight:600">' + d.dish + '</td>' +
+        '<td style="color:var(--blue);font-weight:700">' + d.qty + '</td>' +
+        '<td style="color:var(--gold);font-weight:700">₹' + fmt(d.revenue) + '</td>' +
+        '</tr>';
+    }).join("");
+  });
+}
+
+function loadDishProfits() {
+  call("getdishprofits").then(function(res) {
+    if (!res.success) return;
+    const tbody = document.getElementById("dishProfitTable");
+    if (!res.dishes || res.dishes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No dish costs set yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.dishes.map(function(d) {
+      const margin = parseFloat(d.margin) || 0;
+      const color = margin >= 50 ? "var(--green)" : margin >= 30 ? "var(--orange)" : "#ff4444";
+      return '<tr>' +
+        '<td style="font-weight:600">' + d.dish + '</td>' +
+        '<td>₹' + d.sellPrice + '</td>' +
+        '<td>₹' + d.costPrice + '</td>' +
+        '<td style="color:var(--green);font-weight:700">₹' + d.profit + '</td>' +
+        '<td style="color:' + color + ';font-weight:700">' + d.margin + '</td>' +
+        '</tr>';
+    }).join("");
+  });
+}
+
+function saveDishCost() {
+  const d = {
+    dish:         document.getElementById("dishName").value.trim(),
+    sellingPrice: document.getElementById("dishSell").value,
+    costPrice:    document.getElementById("dishCost").value
   };
-  if (!data.item || !data.quantity || !data.rate) return showToast("Fill required fields!", true);
-  const result = await apiCall('addstock', data);
-  if (result.success) {
-    showToast("✅ " + result.message);
-    closeModal('stockModal');
-    document.querySelectorAll('#stockModal input').forEach(i => i.value = '');
-    setDefaultDates();
+  if (!d.dish || !d.sellingPrice || !d.costPrice) {
+    showToast("❌ Fill all fields"); return;
   }
+  call("setdishcost", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ " + res.message);
+      loadDishProfits();
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
 }
 
-// Update submitExpense function
-async function submitExpense() {
-  const data = {
-    date: document.getElementById('expDate').value,
-    category: document.getElementById('expCategory').value,
-    description: document.getElementById('expDesc').value,
-    amount: document.getElementById('expAmount').value,
-    paymentMode: document.getElementById('expPayment').value
+function saveDishSale() {
+  const d = {
+    dish:     document.getElementById("dsDish").value.trim(),
+    category: document.getElementById("dsCat").value,
+    quantity: document.getElementById("dsQty").value,
+    price:    document.getElementById("dsPrice").value,
+    date:     document.getElementById("dsDate").value
   };
-  if (!data.amount) return showToast("Enter amount!", true);
-  const result = await apiCall('addexpense', data);
-  if (result.success) {
-    showToast("✅ " + result.message);
-    closeModal('expenseModal');
-    loadDashboard();
-    document.getElementById('expDesc').value = '';
-    document.getElementById('expAmount').value = '';
-    setDefaultDates();
-  }
+  if (!d.dish || !d.quantity) { showToast("❌ Fill dish and quantity"); return; }
+
+  call("adddishsale", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ Dish sale logged!");
+      document.getElementById("dsDish").value = "";
+      document.getElementById("dsQty").value  = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
 }
 
-// NEW: Set default dates to today
-function setDefaultDates() {
-  const today = new Date().toISOString().split('T')[0];
-  if (document.getElementById('salesDate')) document.getElementById('salesDate').value = today;
-  if (document.getElementById('stockDate')) document.getElementById('stockDate').value = today;
-  if (document.getElementById('expDate')) document.getElementById('expDate').value = today;
-}
-
-// Call this on page load
-setDefaultDates();
-
-// AI ASSISTANT
-async function askAI(question) {
-  const input = document.getElementById('aiInput');
-  const q = question || input.value;
-  if (!q) return;
-  
-  const messages = document.getElementById('aiMessages');
-  messages.innerHTML += `<div class="ai-msg user"><div class="label">👤 You</div><div>${q}</div></div>`;
-  input.value = '';
-  messages.scrollTop = messages.scrollHeight;
-  
-  messages.innerHTML += `<div class="ai-msg bot" id="thinking"><div class="label">🤖 Thinking...</div><div>⏳ Let me think...</div></div>`;
-  messages.scrollTop = messages.scrollHeight;
-  
-  const result = await apiCall('askai', { question: q });
-  document.getElementById('thinking').remove();
-  
-  if (result.success) {
-    messages.innerHTML += `<div class="ai-msg bot"><div class="label">🤖 AI Assistant</div><div>${result.reply.replace(/\n/g, '<br>')}</div></div>`;
-  } else {
-    messages.innerHTML += `<div class="ai-msg bot"><div class="label">❌ Error</div><div>Sorry, I couldn't respond. Try again!</div></div>`;
-  }
-  messages.scrollTop = messages.scrollHeight;
-}
-
-function askSuggestion(text) {
-  askAI(text);
-}
-
-// VOICE INPUT
-function voiceInput() {
-  if (!('webkitSpeechRecognition' in window)) return showToast("Voice not supported", true);
-  const recognition = new webkitSpeechRecognition();
-  recognition.lang = 'en-IN';
-  recognition.onresult = (e) => {
-    document.getElementById('aiInput').value = e.results[0][0].transcript;
+// ============================================================
+// MONEY RECEIVED
+// ============================================================
+function saveMoneyReceived() {
+  const d = {
+    date:        document.getElementById("mrDate").value,
+    from:        document.getElementById("mrFrom").value.trim(),
+    reason:      document.getElementById("mrReason").value.trim(),
+    amount:      document.getElementById("mrAmount").value,
+    paymentMode: document.getElementById("mrMode").value,
+    user:        currentUser.name,
+    role:        currentUser.role
   };
-  recognition.start();
-  showToast("🎤 Listening...");
+  if (!d.from || !d.amount) { showToast("❌ Fill From and Amount"); return; }
+
+  call("addmoneyreceived", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ " + res.message);
+      loadMoneyReceived();
+      document.getElementById("mrFrom").value   = "";
+      document.getElementById("mrReason").value = "";
+      document.getElementById("mrAmount").value = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
 }
 
-// CONTENT IDEAS
-async function getNewContent() {
-  const result = await apiCall('getcontent');
-  if (result.success) {
-    document.getElementById('contentArea').innerHTML = `
-      <div class="content-card">
-        <div class="label">🎬 Type</div>
-        <div class="value">${result.type}</div>
-      </div>
-      <div class="content-card">
-        <div class="label">🪝 Hook</div>
-        <div class="value">"${result.hook}"</div>
-      </div>
-      <div class="content-card">
-        <div class="label">💡 Idea</div>
-        <div class="value">${result.idea}</div>
-      </div>
-      <div class="content-card">
-        <div class="label">🍽️ Featured Dish</div>
-        <div class="value">${result.featured}</div>
-      </div>
-      <div class="content-card">
-        <div class="label">⏰ Best Time to Post</div>
-        <div class="value">${result.bestTime}</div>
-      </div>
-      <div class="content-card">
-        <div class="label">🏷️ Hashtags</div>
-        <div class="value" style="font-size: 12px;">${result.hashtags}</div>
-      </div>
-    `;
-  }
+function loadMoneyReceived() {
+  call("getmoneyreceived").then(function(res) {
+    if (!res.success) return;
+    document.getElementById("moneyTotal").textContent = "₹" + fmt(res.total);
+
+    const tbody = document.getElementById("moneyTable");
+    if (!res.entries || res.entries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No entries yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.entries.slice(-20).reverse().map(function(e) {
+      return '<tr>' +
+        '<td>' + formatDate(e.date) + '</td>' +
+        '<td style="font-weight:600">' + e.from + '</td>' +
+        '<td style="color:var(--text-muted)">' + (e.reason || "-") + '</td>' +
+        '<td style="color:var(--green);font-weight:700">₹' + fmt(e.amount) + '</td>' +
+        '<td>' + (e.mode || "-") + '</td>' +
+        '</tr>';
+    }).join("");
+  });
 }
 
-// TASKS
-async function loadTasks() {
-  const result = await apiCall('gettasks');
-  if (result.success) {
-    let html = `<p style="color:#FFD700;margin-bottom:15px;">📅 ${result.date} | ⏰ ${result.currentTime}</p>`;
-    result.tasks.forEach(t => {
-      const icon = t.status === 'done' ? '✅' : (t.status === 'current' ? '🔄' : '⬜');
-      html += `<div class="task-item ${t.status}">
-        <div class="task-time">${t.time}</div>
-        <div class="task-text">${icon} ${t.task}<div class="task-who">👤 ${t.who}</div></div>
-      </div>`;
+// ============================================================
+// CASH RECONCILIATION
+// ============================================================
+function doReconcile() {
+  const d = {
+    opening: document.getElementById("rcOpening").value,
+    actual:  document.getElementById("rcActual").value,
+    user:    currentUser.name
+  };
+  if (!d.opening || !d.actual) { showToast("❌ Fill all fields"); return; }
+
+  call("reconcilecash", d).then(function(res) {
+    if (!res.success) { showToast("❌ " + res.error); return; }
+
+    const isGood = Math.abs(res.difference) < 100;
+    const color  = isGood ? "var(--green)" : "#ff4444";
+
+    document.getElementById("reconcileResult").style.display = "block";
+    document.getElementById("reconcileResultBody").innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+      '<div class="stat-card">' +
+        '<div class="stat-label">Expected Cash</div>' +
+        '<div class="stat-val">₹' + fmt(res.expected) + '</div>' +
+      '</div>' +
+      '<div class="stat-card">' +
+        '<div class="stat-label">Actual Cash</div>' +
+        '<div class="stat-val">₹' + fmt(res.actual) + '</div>' +
+      '</div>' +
+      '</div>' +
+      '<div style="text-align:center;margin-top:16px;padding:16px;background:var(--surface2);border-radius:10px;border:2px solid ' + color + '">' +
+      '<div style="font-size:24px;margin-bottom:6px">' + (isGood ? "✅" : "⚠️") + '</div>' +
+      '<div style="font-size:18px;font-weight:800;color:' + color + '">' + res.status + '</div>' +
+      '<div style="font-size:14px;margin-top:6px">Difference: <strong style="color:' + color + '">₹' + res.difference + '</strong></div>' +
+      '</div>';
+
+    showToast(isGood ? "✅ Cash balanced!" : "⚠️ Cash mismatch!");
+    document.getElementById("rcOpening").value = "";
+    document.getElementById("rcActual").value  = "";
+  });
+}
+
+// ============================================================
+// AI PREDICTIONS
+// ============================================================
+function loadPredictions() {
+  document.getElementById("dayInsights").innerHTML = "Analyzing data...";
+  document.getElementById("aiTipsList").innerHTML  = "Generating insights...";
+
+  call("getpredictions").then(function(res) {
+    if (!res.success) {
+      document.getElementById("dayInsights").innerHTML =
+        '<div class="alert alert-warn">Need more data for predictions</div>';
+      return;
+    }
+
+    const p = res.predictions;
+    document.getElementById("pred-tomorrow").textContent     = "₹" + fmt(p.tomorrow);
+    document.getElementById("pred-tomorrow-day").textContent = p.tomorrowDay + " Prediction";
+    document.getElementById("pred-week").textContent         = "₹" + fmt(p.weekAhead);
+    document.getElementById("pred-avg").textContent          = "₹" + fmt(res.averageDaily);
+    document.getElementById("pred-month").textContent        = "₹" + fmt(p.monthEnd);
+
+    // Day insights
+    let dayHtml = "";
+    if (res.dayInsights && res.dayInsights.length > 0) {
+      const maxAvg = res.dayInsights[0].avg || 1;
+      dayHtml = res.dayInsights.map(function(d) {
+        const pct = Math.round((d.avg / maxAvg) * 100);
+        return '<div style="margin-bottom:10px">' +
+          '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
+          '<span>' + d.day + '</span>' +
+          '<span style="color:var(--gold);font-weight:700">₹' + fmt(d.avg) + ' avg</span>' +
+          '</div>' +
+          '<div class="progress-wrap"><div class="progress-bar progress-green" style="width:' + pct + '%"></div></div>' +
+          '</div>';
+      }).join("");
+    } else {
+      dayHtml = '<div class="empty">Need 7+ days of data</div>';
+    }
+    document.getElementById("dayInsights").innerHTML = dayHtml;
+
+    // AI Tips
+    const tips = [];
+    if (res.bestDay) tips.push("📈 Your best day is <strong>" + res.bestDay.day + "</strong> (avg ₹" + fmt(res.bestDay.avg) + "). Staff up!");
+    if (res.worstDay) tips.push("📉 <strong>" + res.worstDay.day + "</strong> is slowest. Consider offers or discounts.");
+    if (p.tomorrow > res.averageDaily * 1.1) tips.push("🚀 Tomorrow looks strong! Prepare extra stock.");
+    else if (p.tomorrow < res.averageDaily * 0.9) tips.push("⚠️ Slower day ahead. Plan accordingly.");
+    tips.push("💡 Average order value: ₹" + fmt(Math.round(res.averageDaily / 40)));
+    tips.push("🎯 To hit monthly target, need ₹" + fmt(Math.round(res.predictions.monthEnd / 30)) + "/day");
+
+    document.getElementById("aiTipsList").innerHTML = tips.map(function(t) {
+      return '<div class="alert alert-info" style="margin-bottom:8px">' + t + '</div>';
+    }).join("");
+  });
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+function loadAuditLog() {
+  call("getauditlog", { limit: 100 }).then(function(res) {
+    if (!res.success) return;
+    const tbody = document.getElementById("auditTable");
+
+    if (!res.logs || res.logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No audit records</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = res.logs.map(function(l) {
+      return '<tr>' +
+        '<td style="font-size:11px;color:var(--text-muted)">' + formatDateTime(l.time) + '</td>' +
+        '<td style="font-weight:600">' + l.user + '</td>' +
+        '<td><span class="role-badge role-' + l.role + '" style="font-size:10px">' + l.role + '</span></td>' +
+        '<td>' + l.action + '</td>' +
+        '<td style="color:var(--text-muted);font-size:12px">' + l.details + '</td>' +
+        '</tr>';
+    }).join("");
+  });
+}
+
+// ============================================================
+// USERS
+// ============================================================
+function loadUsers() {
+  call("getusers").then(function(res) {
+    if (!res.success) return;
+    const container = document.getElementById("usersList");
+
+    container.innerHTML = res.users.map(function(u) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;' +
+        'padding:12px;background:var(--surface2);border-radius:8px;margin-bottom:8px">' +
+        '<div>' +
+        '<div style="font-weight:700">' + u.name + '</div>' +
+        '<div style="font-size:12px;color:var(--text-muted)">' + u.email + '</div>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+        '<span class="role-badge role-' + u.role + '">' + u.role + '</span>' +
+        '<div style="font-size:11px;color:var(--text-muted);margin-top:4px">' +
+        (u.active === "Yes" ? "✅ Active" : "❌ Inactive") + '</div>' +
+        '</div>' +
+        '</div>';
+    }).join("");
+  });
+}
+
+function saveUser() {
+  const d = {
+    name:    document.getElementById("uName").value.trim(),
+    email:   document.getElementById("uEmail").value.trim(),
+    role:    document.getElementById("uRole").value,
+    pin:     document.getElementById("uPin").value,
+    addedBy: currentUser.name
+  };
+  if (!d.name || !d.pin) { showToast("❌ Fill name and PIN"); return; }
+
+  call("adduser", d).then(function(res) {
+    if (res.success) {
+      showToast("✅ User added!");
+      loadUsers();
+      document.getElementById("uName").value  = "";
+      document.getElementById("uEmail").value = "";
+      document.getElementById("uPin").value   = "";
+    } else {
+      showToast("❌ " + res.error);
+    }
+  });
+}
+
+// ============================================================
+// WHATSAPP
+// ============================================================
+function sendDailyReport() {
+  showToast("📱 Sending WhatsApp report...");
+  call("senddailyreport").then(function(res) {
+    showToast(res.success ? "✅ Report sent to WhatsApp!" : "❌ WhatsApp not configured");
+  });
+}
+
+function quickWhatsApp() {
+  sendDailyReport();
+}
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+function fmt(num) {
+  const n = parseFloat(num) || 0;
+  return n.toLocaleString("en-IN");
+}
+
+function shortNum(num) {
+  if (num >= 100000) return (num/100000).toFixed(1) + "L";
+  if (num >= 1000)   return (num/1000).toFixed(1) + "K";
+  return num;
+}
+
+function formatDate(d) {
+  if (!d) return "-";
+  try {
+    return new Date(d).toLocaleDateString("en-IN", { day:"2-digit", month:"short" });
+  } catch(e) { return "-"; }
+}
+
+function formatDateTime(d) {
+  if (!d) return "-";
+  try {
+    return new Date(d).toLocaleString("en-IN", {
+      day:"2-digit", month:"short",
+      hour:"2-digit", minute:"2-digit"
     });
-    document.getElementById('tasksArea').innerHTML = html;
-  }
+  } catch(e) { return "-"; }
 }
 
-// REPORTS
-async function loadReports() {
-  const weekly = await apiCall('getweekly');
-  const monthly = await apiCall('getmonthly');
-  
-  let html = '<h3 style="color:#FFD700;margin-bottom:10px;">📅 This Week</h3>';
-  if (weekly.success) {
-    html += `<div class="content-card">
-      <div class="dash-row"><span class="lbl">Sales:</span><span class="val">₹${weekly.sales.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Expenses:</span><span class="val">₹${weekly.expenses.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Profit:</span><span class="val">₹${weekly.profit.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Avg Daily:</span><span class="val">₹${weekly.avgDaily.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Best Day:</span><span class="val">${weekly.bestDay.d} (₹${weekly.bestDay.s})</span></div>
-    </div>`;
+// Enter key on login
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && document.getElementById("loginScreen").style.display !== "none") {
+    doLogin();
   }
-  
-  html += '<h3 style="color:#FFD700;margin: 20px 0 10px;">🗓️ This Month</h3>';
-  if (monthly.success) {
-    html += `<div class="content-card">
-      <div class="dash-row"><span class="lbl">Month:</span><span class="val">${monthly.month}</span></div>
-      <div class="dash-row"><span class="lbl">Sales:</span><span class="val">₹${monthly.sales.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Expenses:</span><span class="val">₹${monthly.expenses.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Stock Cost:</span><span class="val">₹${monthly.stockCost.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Profit:</span><span class="val">₹${monthly.profit.toLocaleString('en-IN')}</span></div>
-      <div class="dash-row"><span class="lbl">Avg Daily:</span><span class="val">₹${monthly.avgDaily.toLocaleString('en-IN')}</span></div>
-    </div>`;
-  }
-  
-  document.getElementById('reportsArea').innerHTML = html;
-}
-
-// REQUEST NOTIFICATIONS
-if ('Notification' in window && Notification.permission !== 'granted') {
-  Notification.requestPermission();
-}
-
-// AUTO REFRESH DASHBOARD EVERY 5 MIN
-setInterval(loadDashboard, 5 * 60 * 1000);
-
-// INITIAL LOAD
-setDefaultDates();
-loadDashboard();
+});
 </script>
-
 </body>
 </html>
