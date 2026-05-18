@@ -985,7 +985,14 @@ function showPage(page) {
     case "predictions": loadPredictions(); break;
     case "audit": loadAuditLog(); break;
     case "users": loadUsers(); break;
+    case "ai": loadStaff(); break;
+    case "staff": loadStaff(); break;          // ← Critical!
+    case "attendance": loadAttendance(); break;
+    case "salary": loadSalary(); break;
+    case "tasks": loadTasks(); break;
+    case "content": loadContent(); break;
   }
+  
   window.scrollTo(0, 0);
 }
 
@@ -1780,57 +1787,68 @@ function quickAsk(question) {
 }
 
 // ============================================================
-// 👥 STAFF
+// 👥 STAFF - FIXED VERSION
 // ============================================================
 function loadStaff() {
+  console.log("📥 Loading staff...");
+  
   call("getstaff").then(function(res) {
+    console.log("Staff response:", res);
+    
     const staff = (res && res.staff) || [];
     const list = document.getElementById("staffList");
-    if (!list) return;
-    if (staff.length === 0) {
-      list.innerHTML = '<div class="empty">No staff added yet</div>';
+    
+    if (!list) {
+      console.log("❌ staffList element not found!");
       return;
     }
-    list.innerHTML = staff.map(function(s) {
-      return '<div style="padding:14px;background:var(--surface2);border-radius:10px;margin-bottom:8px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center">' +
-        '<div><div style="font-weight:700;font-size:15px">' + s.name + '</div>' +
-        '<div style="font-size:12px;color:var(--text-muted)">' + s.role + ' • ' + (s.phone || "No phone") + '</div></div>' +
-        '<div style="text-align:right"><div style="color:var(--gold);font-weight:700">₹' + fmt(s.salary) + '/mo</div>' +
-        (s.advanceTotal > 0 ? '<div style="font-size:11px;color:#ff8800">Advance: ₹' + fmt(s.advanceTotal) + '</div>' : '') +
-        '</div></div></div>';
-    }).join("");
     
-    // Update staff dropdowns
-    const opts = '<option value="">Choose staff...</option>' + staff.map(function(s) {
-      return '<option value="' + s.name + '">' + s.name + ' (' + s.role + ')</option>';
-    }).join("");
+    if (staff.length === 0) {
+      list.innerHTML = '<div class="empty"><div class="empty-icon">👥</div>No staff added yet<br><br><small>Add staff above to see them here</small></div>';
+    } else {
+      console.log("✅ Rendering " + staff.length + " staff members");
+      
+      list.innerHTML = staff.map(function(s) {
+        const advanceBadge = s.advanceTotal > 0 
+          ? '<div style="font-size:11px;color:#ff8800;margin-top:4px">Advance: ₹' + fmt(s.advanceTotal) + '</div>' 
+          : '';
+        
+        return '<div style="padding:14px;background:var(--surface2);border-radius:10px;margin-bottom:8px;border:1px solid var(--border)">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+          '<div style="flex:1">' +
+          '<div style="font-weight:700;font-size:15px;color:var(--gold)">👤 ' + s.name + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);margin-top:2px">' + 
+          s.role + ' • ' + (s.phone || "No phone") + 
+          '</div>' +
+          '</div>' +
+          '<div style="text-align:right">' +
+          '<div style="color:var(--green);font-weight:700;font-size:14px">₹' + fmt(s.salary) + '/mo</div>' +
+          advanceBadge +
+          '</div>' +
+          '</div></div>';
+      }).join("");
+    }
+    
+    // Update staff dropdowns for Attendance & Salary pages
+    const optionsHTML = '<option value="">Choose staff...</option>' + 
+      staff.map(function(s) {
+        return '<option value="' + s.name + '">' + s.name + ' (' + s.role + ')</option>';
+      }).join("");
+    
     ["attendStaff", "salStaff"].forEach(function(id) {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = opts;
+      if (el) {
+        el.innerHTML = optionsHTML;
+        console.log("✅ Updated dropdown: " + id);
+      }
     });
-  });
-}
-
-function saveStaff() {
-  if (!checkLogin()) return;
-  const d = {
-    name: document.getElementById("staffName").value.trim(),
-    phone: document.getElementById("staffPhone").value,
-    role: document.getElementById("staffRole").value,
-    salary: document.getElementById("staffSalary").value,
-    addedBy: getUser().name
-  };
-  if (!d.name || !d.salary) { showToast("❌ Fill name and salary"); return; }
-  
-  call("addstaff", d).then(function(res) {
-    if (res && res.success) {
-      showToast("✅ " + res.message);
-      loadStaff();
-      ["staffName", "staffPhone", "staffSalary"].forEach(function(id) {
-        document.getElementById(id).value = "";
-      });
-    } else showToast("❌ " + ((res && res.error) || "Error"));
+    
+  }).catch(function(err) {
+    console.error("❌ loadStaff error:", err);
+    const list = document.getElementById("staffList");
+    if (list) {
+      list.innerHTML = '<div class="alert alert-error">❌ Error loading staff: ' + err.message + '</div>';
+    }
   });
 }
 
